@@ -58,6 +58,7 @@
                             VerticalAlignment="Center">
                     <ToggleButton Content="Support us"
                                   IsChecked="{Binding ShowSupport}"
+                                  Visibility="{Binding HasSupport, Converter={StaticResource BoolToVis}}"
                                   Style="{StaticResource ChipToggle}"
                                   Margin="0,0,16,0"
                                   VerticalAlignment="Center"

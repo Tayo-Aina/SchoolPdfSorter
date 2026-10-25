@@ -28,12 +28,6 @@ public sealed record SupportData(IReadOnlyList<SupportBank> Banks, string? RepoU
 /// </summary>
 public static class SupportInfo
 {
-    /// <summary>Scrambled details: Base64 of the XOR'd UTF-8 text.</summary>
-    internal const string Payload = "";
-
-    /// <summary>SHA-256 of the clear text, Base64 encoded. Fails closed when tampered.</summary>
-    internal const string Seal = "";
-
     internal const string ScrambleKey = "SchoolPdfSorter.support.v1";
 
     /// <summary>
@@ -44,7 +38,11 @@ public static class SupportInfo
     private const string TrustedRepoPath = "/Tayo-Aina/SchoolPdfSorter";
 
     /// <summary>Bank rows and source link, or null when the payload fails verification.</summary>
-    public static SupportData? Load() => Decode(Payload, Seal, ScrambleKey);
+    public static SupportData? Load()
+    {
+        var (payload, seal) = SupportPayload.Values();
+        return Decode(payload, seal, ScrambleKey);
+    }
 
     /// <summary>Decode and verify an arbitrary payload. Returns null on any failure.</summary>
     public static SupportData? Decode(string payload, string seal, string key)

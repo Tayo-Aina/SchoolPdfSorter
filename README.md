@@ -210,6 +210,26 @@ Notes and limits:
   so; keep it somewhere the user can write, as before.
 - Turn checks off with `"Enabled": false` in `%LocalAppData%\SchoolPdfSorter\update.json`.
 
+## Support section
+
+The "Support us" button appears only when support details were sealed into the build.
+Put them in `support.local.json` next to this README (it is gitignored):
+
+```json
+{
+  "banks": [
+    { "bank": "Providus Bank", "number": "0123456789" }
+  ],
+  "repo": "https://github.com/Tayo-Aina/SchoolPdfSorter"
+}
+```
+
+`release.ps1` scrambles the text with a fixed XOR key, seals it with SHA-256, and
+compiles the result into the app. Editing the payload breaks the seal and hides the
+whole section, and the repository link is pinned in code. This is tamper-resistance,
+not encryption: anyone who rebuilds from source can recover the text, so do not rely
+on it to keep the numbers secret.
+
 ## Build and test
 
 ```bat

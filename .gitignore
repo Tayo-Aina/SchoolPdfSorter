@@ -9,3 +9,9 @@ probe/models/
 probe/pdspike/tmp/
 probe/refs/*.bin
 probe/refs/*.f32.bin
+
+# Support details live only on the release machine. release.ps1 turns them into a
+# scrambled, sealed generated file, so neither the clear text nor the payload is
+# committed to a public repository.
+support.local.json
+src/SchoolPdfSorter.App/Support/support.g.cs
