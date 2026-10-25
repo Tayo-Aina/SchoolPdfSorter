@@ -1,0 +1,11 @@
+bin/
+obj/
+publish/
+*.user
+
+# Probe/experiment artifacts: local model copies, generated reference dumps and
+# vendored binaries — large, reproducible, and not part of the app.
+probe/models/
+probe/pdspike/tmp/
+probe/refs/*.bin
+probe/refs/*.f32.bin

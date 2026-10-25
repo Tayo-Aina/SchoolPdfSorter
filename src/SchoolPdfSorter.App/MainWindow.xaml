@@ -1,0 +1,295 @@
+﻿<Window x:Class="SchoolPdfSorter.MainWindow"
+        x:ClassModifier="public"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="School PDF Sorter"
+        Width="1040" Height="760"
+        MinWidth="760" MinHeight="540"
+        Background="{StaticResource BgBrush}"
+        FontFamily="Segoe UI"
+        FontSize="14"
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True"
+        DragOver="OnDragOver"
+        Drop="OnDrop">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ================================ header ================================ -->
+        <Border Grid.Row="0"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource LineBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="20,13">
+            <DockPanel LastChildFill="False">
+
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <Border Width="36" Height="36" CornerRadius="0" Background="{StaticResource AccentBrush}">
+                        <Path Data="M6,3 L17,3 L24,10 L24,27 L6,27 Z M17,3 L17,10 L24,10"
+                              Fill="#000000"
+                              Stretch="Uniform"
+                              Width="19" Height="19"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              StrokeThickness="0" />
+                    </Border>
+                    <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="School PDF Sorter"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextBrush}" />
+                        <TextBlock Text="{Binding StepLabel}"
+                                   FontSize="12"
+                                   Margin="0,2,0,0"
+                                   Foreground="{StaticResource MutedBrush}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <ToggleButton Content="Support us"
+                                  IsChecked="{Binding ShowSupport}"
+                                  Style="{StaticResource ChipToggle}"
+                                  Margin="0,0,16,0"
+                                  VerticalAlignment="Center"
+                                  ToolTip="Show the support section (thanks for thinking of us)" />
+                    <CheckBox Content="Include subfolders"
+                              IsChecked="{Binding IncludeSubfolders}"
+                              Style="{StaticResource ChipCheck}"
+                              VerticalAlignment="Center"
+                              ToolTip="Include PDFs in subfolders too" />
+                </StackPanel>
+
+            </DockPanel>
+        </Border>
+
+        <!-- =============================== support ============================= -->
+        <!-- Opens from the "Support" toggle in the header. The account details are
+             verified at load time (see Support/SupportInfo.cs); a tampered build
+             shows nothing here because the panel is bound to ShowSupport, which
+             stays false whenever verification fails. -->
+        <Border Grid.Row="1"
+                Margin="18,0,18,10"
+                Padding="14,12"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource LineBrush}"
+                BorderThickness="1"
+                CornerRadius="0"
+                Visibility="{Binding ShowSupport, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <TextBlock Text="Support the devs"
+                           FontSize="13.5"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextBrush}" />
+                <TextBlock Text="School PDF Sorter is free and stays free. If it saved you some time, you can say thanks with a small donation to the team behind this app."
+                           FontSize="12.5"
+                           Margin="0,5,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{StaticResource MutedBrush}" />
+                <ItemsControl ItemsSource="{Binding SupportBanks}" Margin="0,9,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{StaticResource InputBrush}"
+                                    BorderBrush="{StaticResource LineBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="0"
+                                    Padding="10,6"
+                                    Margin="0,0,8,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Bank}"
+                                               FontSize="12.5"
+                                               VerticalAlignment="Center"
+                                               Foreground="{StaticResource MutedBrush}" />
+                                    <TextBlock Text="{Binding Number}"
+                                               FontSize="12.5"
+                                               FontWeight="SemiBold"
+                                               Margin="10,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{StaticResource TextBrush}" />
+                                    <Button Content="Copy number"
+                                            Tag="{Binding Number}"
+                                            Click="OnCopyAccountNumber"
+                                            Style="{StaticResource GhostButton}"
+                                            FontSize="11.5"
+                                            Padding="9,3"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            ToolTip="Copy this account number to the clipboard" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Border Background="{StaticResource InputBrush}"
+                        BorderBrush="{StaticResource LineBrush}"
+                        BorderThickness="1"
+                        CornerRadius="0"
+                        Padding="10,6"
+                        Margin="0,8,0,0"
+                        Visibility="{Binding HasSupportRepo, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Source code"
+                                   FontSize="12.5"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource MutedBrush}" />
+                        <TextBlock Text="{Binding SupportRepoUrl, Mode=OneWay}"
+                                   FontSize="12.5"
+                                   FontWeight="SemiBold"
+                                   Margin="10,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextBrush}" />
+                        <Button Content="Open"
+                                Tag="{Binding SupportRepoUrl, Mode=OneWay}"
+                                Click="OnOpenRepository"
+                                Style="{StaticResource GhostButton}"
+                                FontSize="11.5"
+                                Padding="9,3"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                ToolTip="Open the project repository in your browser" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- =============================== transcript ============================= -->
+        <ListBox x:Name="ChatList"
+                 Grid.Row="2"
+                 ItemsSource="{Binding Messages}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 BorderBrush="Transparent"
+                 Padding="0,8"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.CanContentScroll="False"
+                 VirtualizingStackPanel.IsVirtualizing="False"
+                 Focusable="False">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderThickness" Value="0" />
+                    <Setter Property="BorderBrush" Value="Transparent" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Focusable" Value="False" />
+                    <Setter Property="IsTabStop" Value="False" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <ContentPresenter />
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListBox.ItemContainerStyle>
+        </ListBox>
+
+        <!-- ================================ progress ============================= -->
+        <Border Grid.Row="3"
+                Margin="18,0,18,10"
+                Padding="14,10"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource LineBrush}"
+                BorderThickness="1"
+                CornerRadius="0"
+                Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right"
+                               Text="{Binding ProgressText}"
+                               FontSize="12"
+                               Margin="14,0,0,0"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource MutedBrush}" />
+                    <TextBlock DockPanel.Dock="Left"
+                               Text="{Binding StatusText}"
+                               FontSize="13"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource TextBrush}" />
+                </DockPanel>
+
+                <Grid Height="6" Margin="0,9,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{Binding ProgressGridWidth}" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="{StaticResource AccentBrush}" CornerRadius="0" />
+                    <Border Grid.Column="1" Background="#1E1E1E" CornerRadius="0" />
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ================================= input =============================== -->
+        <Border Grid.Row="4"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource LineBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="18,13,18,15">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0"
+                            Background="{StaticResource InputBrush}"
+                            BorderBrush="{StaticResource LineBrush}"
+                            BorderThickness="1"
+                            CornerRadius="0"
+                            Padding="1,4">
+                        <TextBox x:Name="InputBox"
+                                 Style="{StaticResource InputStyle}"
+                                 Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                                 KeyDown="OnInputKeyDown" />
+                    </Border>
+
+                    <Button Grid.Column="1"
+                            Content="Browse…"
+                            Command="{Binding BrowseCommand}"
+                            Style="{StaticResource GhostButton}"
+                            Margin="10,0,0,0" />
+
+                    <Button Grid.Column="2"
+                            Content="Send"
+                            Command="{Binding SendCommand}"
+                            Style="{StaticResource SendButton}"
+                            Margin="10,0,0,0" />
+
+                    <!-- Always present; lights up whenever a run is in progress. -->
+                    <Button Grid.Column="3"
+                            Content="Cancel run"
+                            Command="{Binding CancelCommand}"
+                            IsEnabled="{Binding CancelEnabled}"
+                            Style="{StaticResource GhostButton}"
+                            Margin="10,0,0,0"
+                            ToolTip="Stop the current run (same as /cancel)" />
+                </Grid>
+
+                <TextBlock Margin="2,8,0,0"
+                           FontSize="11.5"
+                           Foreground="{StaticResource MutedBrush}"
+                           Text="Enter sends  ·  Shift+Enter adds a line  ·  drop a folder or a course-structure file anywhere" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

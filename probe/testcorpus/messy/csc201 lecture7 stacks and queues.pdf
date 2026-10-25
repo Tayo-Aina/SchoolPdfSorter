@@ -1,0 +1,384 @@
+%PDF-1.3
+%âãÏÓ
+1 0 obj
+<<
+/PageMode /UseNone
+/Pages 2 0 R
+/Type /Catalog
+>>
+endobj
+2 0 obj
+<<
+/Count 1
+/Kids [ 3 0 R ]
+/Type /Pages
+>>
+endobj
+3 0 obj
+<<
+/Contents 4 0 R
+/MediaBox [ 0 0 595.2756 841.8898 ]
+/Parent 2 0 R
+/Resources <<
+/Font 5 0 R
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+>>
+endobj
+4 0 obj
+<<
+/Filter [ /ASCII85Decode /FlateDecode ]
+/Length 777
+>>
+stream
+Gat=(bAQ&g&A70Vk1CH'C<7">a!PZN!kG].Ynrj47;OAMh-E&2h\W)`3'hVB07pR(Ap/p8>@N=)b5AV0E4NrcD^EO5gD8nF=C?K8YM4t?Y>F>,[<c.Dr`io4TruRJ^##iqmIBW0jpKY?`:'_+n\qHCNUgb*A<Q]>rk\<G'Cu'$`okFnW[K7UCW\'(O4ZC+m%(qF#!YTrs$n_>Q5P*W<3N(CQGmH&hm1oKMt,F]E@RVEnGsdkK\4.,R0`FmXSN$.YZ/9'E4)j,E]tB&fT+fBroWXb1^\g15n=MK<F?Np&R(2\;\/-10Uortbc>k`9i?J'*EcVUOQcEa0Gle;4S@>I@#an5gql=&j#o,[0BmRpiDdn-BCIQ4`F;aE);^'/C>bX26mInG4S9Cfi'K>-?t0IQQ($4Q&7&+A3J2WA/!cCkmm]@:fm+5&B##E-"<+Nam2`06Pb[k'SSQ8Re\uJ3B3?#C8aak-_hV`R3g25*O.t"u#hqAs0Ehm'=npb)QCI.rIue*e7doAcNf5okE8`$Fa.eBb@UL"R)uM^,oqIgJdOpTtKFHTF4GJ6352I3$g@``X>u-8"V($Grb;075>V8gAi&L0S[$KcaFH.8VltOlu`-Z51\KO.hGJ5QhPM@6GLf5LpdHnq2a6et/it!ep4kX7R&2cb[(M@hdf#;)rI`Z+=m@L+bhabdESG,P]1Hc.11-LY[V`ji46M]a1r/8h2=Il`K.:7mXi\grkg9aLlhbhITV![\sL)qmC,ACf+]ADdnDI!)A)N)lt~>
+endstream
+endobj
+5 0 obj
+<<
+/F1 6 0 R
+/F2 7 0 R
+/F3 8 0 R
+>>
+endobj
+6 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Name /F1
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+7 0 obj
+<<
+/BaseFont /Helvetica-Bold
+/Encoding /WinAnsiEncoding
+/Name /F2
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+8 0 obj
+<<
+/BaseFont /Helvetica-Oblique
+/Encoding /WinAnsiEncoding
+/Name /F3
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+9 0 obj
+<<
+/Author (anonymous)
+/CreationDate (D\07220260315120000Z)
+/Creator (anonymous)
+/Keywords ()
+/ModDate (D\07220260315120000Z)
+/Producer (ReportLab PDF Library \055 \050opensource\051)
+/Subject (unspecified)
+/Trapped (\057False)
+/Title (Lecture 7 \204 Stacks and Queues \050CSC 201\051)
+>>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000083 00000 n 
+0000000142 00000 n 
+0000000341 00000 n 
+0000001209 00000 n 
+0000001260 00000 n 
+0000001367 00000 n 
+0000001479 00000 n 
+0000001594 00000 n 
+trailer
+<<
+/Size 10
+/Root 1 0 R
+/Info 9 0 R
+/ID [ <7d8c6bf98c982ba4efa249325f6a05dc> <7d8c6bf98c982ba4efa249325f6a05dc> ]
+>>
+% pad aa596ee3                                                                                                                                            
+% pad b0b5d37b                                                                                                                                            
+% pad 504a7406                                                                                                                                            
+% pad 04fcd15a                                                                                                                                            
+% pad 6a958419                                                                                                                                            
+% pad 8a20f414                                                                                                                                            
+% pad 387f1d50                                                                                                                                            
+% pad 77a15896                                                                                                                                            
+% pad 91d3e89f                                                                                                                                            
+% pad 4f070ad8                                                                                                                                            
+% pad b499df65                                                                                                                                            
+% pad 3f5d0654                                                                                                                                            
+% pad 25241ef8                                                                                                                                            
+% pad fac260aa                                                                                                                                            
+% pad 7c727e6f                                                                                                                                            
+% pad 81f90443                                                                                                                                            
+% pad d5e91c2d                                                                                                                                            
+% pad 124a6685                                                                                                                                            
+% pad 808c2a3f                                                                                                                                            
+% pad f8207c88                                                                                                                                            
+% pad ad6d369c                                                                                                                                            
+% pad 329e36b5                                                                                                                                            
+% pad 34be9999                                                                                                                                            
+% pad c84d229c                                                                                                                                            
+% pad 43ad5de6                                                                                                                                            
+% pad 1006a8d5                                                                                                                                            
+% pad 17bc4963                                                                                                                                            
+% pad 2298ae57                                                                                                                                            
+% pad e6ad1d01                                                                                                                                            
+% pad 6262e7f0                                                                                                                                            
+% pad afbe72b5                                                                                                                                            
+% pad f01005cf                                                                                                                                            
+% pad cb7aa227                                                                                                                                            
+% pad ad739114                                                                                                                                            
+% pad cde5c798                                                                                                                                            
+% pad ff306ee7                                                                                                                                            
+% pad d7349d2a                                                                                                                                            
+% pad 62a04ff1                                                                                                                                            
+% pad 881e9e40                                                                                                                                            
+% pad 53f54282                                                                                                                                            
+% pad 0828314e                                                                                                                                            
+% pad 90b58a57                                                                                                                                            
+% pad 5999a113                                                                                                                                            
+% pad 3652b8ab                                                                                                                                            
+% pad 84b82d57                                                                                                                                            
+% pad 2b8975a5                                                                                                                                            
+% pad c528d092                                                                                                                                            
+% pad 67e634bf                                                                                                                                            
+% pad 59a429f7                                                                                                                                            
+% pad a561776c                                                                                                                                            
+% pad 41cc712e                                                                                                                                            
+% pad 83377f42                                                                                                                                            
+% pad dbf63294                                                                                                                                            
+% pad 67b4292c                                                                                                                                            
+% pad 08e46b25                                                                                                                                            
+% pad 15ccf34b                                                                                                                                            
+% pad 02ebf75d                                                                                                                                            
+% pad c21fd993                                                                                                                                            
+% pad c38e1acd                                                                                                                                            
+% pad b5c2e6a7                                                                                                                                            
+% pad 6692e6eb                                                                                                                                            
+% pad 2fa15a46                                                                                                                                            
+% pad 7d483bd5                                                                                                                                            
+% pad df79d313                                                                                                                                            
+% pad 9c961f76                                                                                                                                            
+% pad 2f23b247                                                                                                                                            
+% pad ea93938a                                                                                                                                            
+% pad 4a45c839                                                                                                                                            
+% pad 80deb3ca                                                                                                                                            
+% pad ffb302a9                                                                                                                                            
+% pad 18b49d4c                                                                                                                                            
+% pad 7ba3e42e                                                                                                                                            
+% pad 74753655                                                                                                                                            
+% pad f61d08c1                                                                                                                                            
+% pad 3dd4d0fd                                                                                                                                            
+% pad 888abd98                                                                                                                                            
+% pad 20f176b6                                                                                                                                            
+% pad 4ac6f50a                                                                                                                                            
+% pad 33123deb                                                                                                                                            
+% pad ebe7a35d                                                                                                                                            
+% pad d7724ab3                                                                                                                                            
+% pad 04e5f99e                                                                                                                                            
+% pad 8a61c335                                                                                                                                            
+% pad c8d36309                                                                                                                                            
+% pad 47f3e7e2                                                                                                                                            
+% pad 38202ad4                                                                                                                                            
+% pad 6513faa0                                                                                                                                            
+% pad 789cc315                                                                                                                                            
+% pad a55dfcf3                                                                                                                                            
+% pad 4484ae34                                                                                                                                            
+% pad d1f064cf                                                                                                                                            
+% pad b1cf83fe                                                                                                                                            
+% pad 95d9fda7                                                                                                                                            
+% pad 9548b25e                                                                                                                                            
+% pad 8de56efe                                                                                                                                            
+% pad ba0021f4                                                                                                                                            
+% pad 8e45bec4                                                                                                                                            
+% pad 900aee01                                                                                                                                            
+% pad 34ec12d5                                                                                                                                            
+% pad 83fae890                                                                                                                                            
+% pad 9202d97b                                                                                                                                            
+% pad a9612cc7                                                                                                                                            
+% pad da387ad5                                                                                                                                            
+% pad a0ce9e1a                                                                                                                                            
+% pad 4faba1d3                                                                                                                                            
+% pad f88f2fd9                                                                                                                                            
+% pad d80c1cea                                                                                                                                            
+% pad 2c50e927                                                                                                                                            
+% pad 324ddcf8                                                                                                                                            
+% pad 6722b9f0                                                                                                                                            
+% pad 617fd57a                                                                                                                                            
+% pad bb59d06f                                                                                                                                            
+% pad 51726529                                                                                                                                            
+% pad c5d21494                                                                                                                                            
+% pad cdfd528c                                                                                                                                            
+% pad 6ac4d47f                                                                                                                                            
+% pad 878f681a                                                                                                                                            
+% pad ee93d336                                                                                                                                            
+% pad 944f4202                                                                                                                                            
+% pad e6f2e5be                                                                                                                                            
+% pad 5dae9502                                                                                                                                            
+% pad 44e34e09                                                                                                                                            
+% pad a2acd5f1                                                                                                                                            
+% pad 719ec328                                                                                                                                            
+% pad 2f376e15                                                                                                                                            
+% pad d5cd7f36                                                                                                                                            
+% pad 05854708                                                                                                                                            
+% pad 2efeb9a2                                                                                                                                            
+% pad 0b4fa241                                                                                                                                            
+% pad ec4a8782                                                                                                                                            
+% pad 0b761e8d                                                                                                                                            
+% pad dc82048d                                                                                                                                            
+% pad 8769c6c5                                                                                                                                            
+% pad 42d77cf3                                                                                                                                            
+% pad 45cc7261                                                                                                                                            
+% pad db93a279                                                                                                                                            
+% pad b835dc54                                                                                                                                            
+% pad 65b1486e                                                                                                                                            
+% pad 1474697c                                                                                                                                            
+% pad dd77776f                                                                                                                                            
+% pad 583fac88                                                                                                                                            
+% pad 9229e585                                                                                                                                            
+% pad a66b84db                                                                                                                                            
+% pad 573c79b4                                                                                                                                            
+% pad 4ff3e380                                                                                                                                            
+% pad c065b436                                                                                                                                            
+% pad 13d9d2b7                                                                                                                                            
+% pad 1ab88d0d                                                                                                                                            
+% pad 6e84188d                                                                                                                                            
+% pad 6b8dbf82                                                                                                                                            
+% pad e5d5ad9c                                                                                                                                            
+% pad c80983ff                                                                                                                                            
+% pad df87a387                                                                                                                                            
+% pad d192daf0                                                                                                                                            
+% pad adc00c4f                                                                                                                                            
+% pad f537b88e                                                                                                                                            
+% pad 03793c11                                                                                                                                            
+% pad b93972db                                                                                                                                            
+% pad 44e7d265                                                                                                                                            
+% pad 4f218ba2                                                                                                                                            
+% pad 846a1f11                                                                                                                                            
+% pad ca1af5e4                                                                                                                                            
+% pad bcd6d970                                                                                                                                            
+% pad a82470d5                                                                                                                                            
+% pad c0292240                                                                                                                                            
+% pad fb99a5c6                                                                                                                                            
+% pad 9a068807                                                                                                                                            
+% pad 3e1a710a                                                                                                                                            
+% pad ed305082                                                                                                                                            
+% pad f470b4e8                                                                                                                                            
+% pad 1efd3ba6                                                                                                                                            
+% pad 94d5d2aa                                                                                                                                            
+% pad 762e7fa1                                                                                                                                            
+% pad 331eacfc                                                                                                                                            
+% pad 19a0e0db                                                                                                                                            
+% pad 21544003                                                                                                                                            
+% pad b504d2e6                                                                                                                                            
+% pad 4c2cdd35                                                                                                                                            
+% pad 07eaf266                                                                                                                                            
+% pad 9fc85ef6                                                                                                                                            
+% pad 51d801f4                                                                                                                                            
+% pad d365b46f                                                                                                                                            
+% pad 43d2c201                                                                                                                                            
+% pad 59750f47                                                                                                                                            
+% pad 09580fd2                                                                                                                                            
+% pad 068f9b5f                                                                                                                                            
+% pad 572f9654                                                                                                                                            
+% pad 3e46a3a4                                                                                                                                            
+% pad 36db6310                                                                                                                                            
+% pad f0c5aaa6                                                                                                                                            
+% pad bde8a5c7                                                                                                                                            
+% pad 68eb18f6                                                                                                                                            
+% pad f8485967                                                                                                                                            
+% pad 1ff7ccc1                                                                                                                                            
+% pad 93a4f8f9                                                                                                                                            
+% pad de6cab56                                                                                                                                            
+% pad 3730172f                                                                                                                                            
+% pad 1db7f5ea                                                                                                                                            
+% pad 867d02b0                                                                                                                                            
+% pad 09a53a48                                                                                                                                            
+% pad 89e2ffcc                                                                                                                                            
+% pad dd59cdbd                                                                                                                                            
+% pad f56e0e99                                                                                                                                            
+% pad c4d2927f                                                                                                                                            
+% pad f44986bb                                                                                                                                            
+% pad 0d4ca3c7                                                                                                                                            
+% pad 60061f82                                                                                                                                            
+% pad 0a828e84                                                                                                                                            
+% pad 21accf79                                                                                                                                            
+% pad 6681048e                                                                                                                                            
+% pad 064a37be                                                                                                                                            
+% pad 5c33ddf7                                                                                                                                            
+% pad 88a587bf                                                                                                                                            
+% pad 1304c692                                                                                                                                            
+% pad df700729                                                                                                                                            
+% pad 085ac9c5                                                                                                                                            
+% pad 739748ec                                                                                                                                            
+% pad 43685ef6                                                                                                                                            
+% pad 52018a54                                                                                                                                            
+% pad 1e0165bc                                                                                                                                            
+% pad 98912427                                                                                                                                            
+% pad 73afb194                                                                                                                                            
+% pad 82b5acb3                                                                                                                                            
+% pad 115c5be7                                                                                                                                            
+% pad 5edd0de6                                                                                                                                            
+% pad 04f0e12d                                                                                                                                            
+% pad a084e61b                                                                                                                                            
+% pad a1d0f2f2                                                                                                                                            
+% pad e123fd54                                                                                                                                            
+% pad ff9b9232                                                                                                                                            
+% pad 90468557                                                                                                                                            
+% pad 0d8f938c                                                                                                                                            
+% pad fa044327                                                                                                                                            
+% pad 8be55fea                                                                                                                                            
+% pad b1d21520                                                                                                                                            
+% pad 6e9357e3                                                                                                                                            
+% pad 59cac373                                                                                                                                            
+% pad 5b2c35a4                                                                                                                                            
+% pad 20fe68bc                                                                                                                                            
+% pad 01749de9                                                                                                                                            
+% pad f08e45cf                                                                                                                                            
+% pad f5f87eff                                                                                                                                            
+% pad d7f5ebe6                                                                                                                                            
+% pad e9c2d743                                                                                                                                            
+% pad f22a0dee                                                                                                                                            
+% pad e70774e3                                                                                                                                            
+% pad 27a26799                                                                                                                                            
+% pad a4e5e0ea                                                                                                                                            
+% pad 60f345c8                                                                                                                                            
+% pad 259e6bb9                                                                                                                                            
+% pad 1d9119be                                                                                                                                            
+% pad 13f88b35                                                                                                                                            
+% pad 469842e8                                                                                                                                            
+% pad 16556636                                                                                                                                            
+% pad e5c60ac6                                                                                                                                            
+% pad 47264f1e                                                                                                                                            
+% pad 11dfc6d4                                                                                                                                            
+% pad 48f38643                                                                                                                                            
+% pad 3e4f9246                                                                                                                                            
+% pad a3291004                                                                                                                                            
+% pad 48fea56e                                                                                                                                            
+% pad 5c3963e6                                                                                                                                            
+% pad 4d6057c8                                                                                                                                            
+% pad 5be7113b                                                                                                                                            
+% pad a5c3ff64                                                                                                                                            
+% pad f11748d4                                                                                                                                            
+% pad 8ad3951c                                                                                                                                            
+% pad a54f0a36                                                                                                                                            
+% pad 9b4f7a47                                                                                                                                            
+% pad 308cda9c                                                                                                                                            
+% pad 43d9e037                                                                                                                                            
+% pad 8c95f6cf                                                                                                                                            
+% pad a9cc08ff                                                                                                                                            
+% pad babaaa3d                                                                                                                                            
+% pad fc90a220                                                                                                                                            
+startxref
+1898
+%%EOF

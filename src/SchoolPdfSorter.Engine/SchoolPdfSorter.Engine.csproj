@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NanoOCR" Version="26.10.6797" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+  </ItemGroup>
+
+  <!--
+    The old embedding / vision stack stays in the repository for reference, but is dormant:
+    strict course-code sorting does not load it, and v1 does not ship its ONNX runtime or models.
+  -->
+  <ItemGroup>
+    <Compile Remove="Embedder.cs" />
+    <Compile Remove="ImagePrep.cs" />
+    <Compile Remove="Planner.cs" />
+  </ItemGroup>
+
+</Project>

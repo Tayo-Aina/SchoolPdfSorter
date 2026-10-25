@@ -1,0 +1,344 @@
+[
+  {
+    "file": "messy\\ECON301_Week6.pdf",
+    "expected_course": "ECON 301 Microeconomics",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "clean name; metadata title",
+    "pages": 1,
+    "bytes": 36265
+  },
+  {
+    "file": "messy\\ECON301_ProblemSet2.pdf",
+    "expected_course": "ECON 301 Microeconomics",
+    "kind": "scan",
+    "name_hint": true,
+    "notes": "scan with strong in-page header",
+    "pages": 1,
+    "bytes": 265358
+  },
+  {
+    "file": "messy\\econ301 tutorial 4 (final).pdf",
+    "expected_course": "ECON 301 Microeconomics",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "messy name with course code hint",
+    "pages": 1,
+    "bytes": 39220
+  },
+  {
+    "file": "messy\\IMG_20260304_123456.pdf",
+    "expected_course": "ECON 301 Microeconomics",
+    "kind": "scan",
+    "name_hint": false,
+    "notes": "no name hint; code only mid-page (weak signal)",
+    "pages": 1,
+    "bytes": 255062
+  },
+  {
+    "file": "messy\\document.pdf",
+    "expected_course": "ECON 301 Microeconomics",
+    "kind": "text",
+    "name_hint": false,
+    "notes": "no name hint; content-only identification",
+    "pages": 1,
+    "bytes": 36167
+  },
+  {
+    "file": "messy\\GST102_ListeningSkills.pdf",
+    "expected_course": "GST 102 Communication in English",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "clean name; metadata title",
+    "pages": 1,
+    "bytes": 41878
+  },
+  {
+    "file": "messy\\gst102 notes wk4.pdf",
+    "expected_course": "GST 102 Communication in English",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "messy name with course code hint",
+    "pages": 1,
+    "bytes": 44203
+  },
+  {
+    "file": "messy\\Communication in English handout.pdf",
+    "expected_course": "GST 102 Communication in English",
+    "kind": "scan",
+    "name_hint": true,
+    "notes": "scan with strong in-page header; topic name hint",
+    "pages": 1,
+    "bytes": 248134
+  },
+  {
+    "file": "messy\\Scan_0007.pdf",
+    "expected_course": "GST 102 Communication in English",
+    "kind": "scan",
+    "name_hint": false,
+    "notes": "no name hint; code only mid-page (weak signal)",
+    "pages": 1,
+    "bytes": 220936
+  },
+  {
+    "file": "messy\\GST102_Assignment1.pdf",
+    "expected_course": "GST 102 Communication in English",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "clean name; metadata title",
+    "pages": 1,
+    "bytes": 40810
+  },
+  {
+    "file": "messy\\CSC201_LinkedLists.pdf",
+    "expected_course": "CSC 201 Data Structures",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "clean name; metadata title",
+    "pages": 1,
+    "bytes": 45477
+  },
+  {
+    "file": "messy\\csc201 lecture7 stacks and queues.pdf",
+    "expected_course": "CSC 201 Data Structures",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "messy name with course code hint",
+    "pages": 1,
+    "bytes": 44879
+  },
+  {
+    "file": "messy\\CSC201_BinaryTrees.pdf",
+    "expected_course": "CSC 201 Data Structures",
+    "kind": "scan",
+    "name_hint": true,
+    "notes": "scan with strong in-page header",
+    "pages": 1,
+    "bytes": 207284
+  },
+  {
+    "file": "messy\\IMG_20260311_093045.pdf",
+    "expected_course": "CSC 201 Data Structures",
+    "kind": "scan",
+    "name_hint": false,
+    "notes": "no name hint; code only mid-page (weak signal)",
+    "pages": 1,
+    "bytes": 195139
+  },
+  {
+    "file": "messy\\2f4a9c1b8e77.pdf",
+    "expected_course": "CSC 201 Data Structures",
+    "kind": "text",
+    "name_hint": false,
+    "notes": "no name hint; content-only identification",
+    "pages": 1,
+    "bytes": 40173
+  },
+  {
+    "file": "messy\\MTH101 assignment FINAL v2 please print.pdf",
+    "expected_course": "MTH 101 Elementary Mathematics I",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "messy name with course code hint",
+    "pages": 1,
+    "bytes": 42791
+  },
+  {
+    "file": "messy\\MTH101_Tutorial2.pdf",
+    "expected_course": "MTH 101 Elementary Mathematics I",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "clean name; metadata title",
+    "pages": 1,
+    "bytes": 45526
+  },
+  {
+    "file": "messy\\maths past questions 2024.pdf",
+    "expected_course": "MTH 101 Elementary Mathematics I",
+    "kind": "scan",
+    "name_hint": true,
+    "notes": "scan with strong in-page header; topic name hint",
+    "pages": 1,
+    "bytes": 231065
+  },
+  {
+    "file": "messy\\Scan_0021.pdf",
+    "expected_course": "MTH 101 Elementary Mathematics I",
+    "kind": "scan",
+    "name_hint": false,
+    "notes": "no name hint; code only mid-page (weak signal)",
+    "pages": 1,
+    "bytes": 204810
+  },
+  {
+    "file": "messy\\quadratic equations worksheet.pdf",
+    "expected_course": "MTH 101 Elementary Mathematics I",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "topic name hint only",
+    "pages": 1,
+    "bytes": 41981
+  },
+  {
+    "file": "messy\\PHY105_Lab2_Report.pdf",
+    "expected_course": "PHY 105 General Physics",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "clean name; metadata title",
+    "pages": 1,
+    "bytes": 45550
+  },
+  {
+    "file": "messy\\phy105_lecture3 (1).pdf",
+    "expected_course": "PHY 105 General Physics",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "messy name with course code hint",
+    "pages": 1,
+    "bytes": 40413
+  },
+  {
+    "file": "messy\\IMG_20260313_171204.pdf",
+    "expected_course": "PHY 105 General Physics",
+    "kind": "scan",
+    "name_hint": false,
+    "notes": "no name hint; strong in-page header",
+    "pages": 1,
+    "bytes": 194985
+  },
+  {
+    "file": "messy\\Scan_0034.pdf",
+    "expected_course": "PHY 105 General Physics",
+    "kind": "scan",
+    "name_hint": false,
+    "notes": "no name hint; code only mid-page (weak signal)",
+    "pages": 1,
+    "bytes": 236405
+  },
+  {
+    "file": "messy\\newton laws of motion notes.pdf",
+    "expected_course": "PHY 105 General Physics",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "topic name hint; metadata title",
+    "pages": 1,
+    "bytes": 45534
+  },
+  {
+    "file": "messy\\BIO150_CellStructure.pdf",
+    "expected_course": "BIO 150 General Biology",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "clean name; metadata title",
+    "pages": 1,
+    "bytes": 36354
+  },
+  {
+    "file": "messy\\bio 150 practical manual.pdf",
+    "expected_course": "BIO 150 General Biology",
+    "kind": "scan",
+    "name_hint": true,
+    "notes": "scan with strong in-page header",
+    "pages": 1,
+    "bytes": 243623
+  },
+  {
+    "file": "messy\\Scan_0042.pdf",
+    "expected_course": "BIO 150 General Biology",
+    "kind": "scan",
+    "name_hint": false,
+    "notes": "no name hint; code only mid-page (weak signal)",
+    "pages": 1,
+    "bytes": 188767
+  },
+  {
+    "file": "messy\\ecosystems field trip notes.pdf",
+    "expected_course": "BIO 150 General Biology",
+    "kind": "text",
+    "name_hint": true,
+    "notes": "topic name hint only",
+    "pages": 1,
+    "bytes": 38525
+  },
+  {
+    "file": "messy\\document (2).pdf",
+    "expected_course": "BIO 150 General Biology",
+    "kind": "text",
+    "name_hint": false,
+    "notes": "no name hint; content-only identification",
+    "pages": 1,
+    "bytes": 36276
+  },
+  {
+    "file": "messy\\Downloads_Oct12\\GST102_L3.pdf",
+    "expected_course": "GST 102 Communication in English",
+    "kind": "batch",
+    "name_hint": true,
+    "notes": "portal export batch; footer 09:41",
+    "pages": 1,
+    "bytes": 43640
+  },
+  {
+    "file": "messy\\Downloads_Oct12\\GST102_L4.pdf",
+    "expected_course": "GST 102 Communication in English",
+    "kind": "batch",
+    "name_hint": true,
+    "notes": "portal export batch; footer 09:43",
+    "pages": 1,
+    "bytes": 39370
+  },
+  {
+    "file": "messy\\Downloads_Oct12\\GST102_L4 (1).pdf",
+    "expected_course": "GST 102 Communication in English",
+    "kind": "batch",
+    "name_hint": true,
+    "notes": "portal export batch; footer 09:44",
+    "pages": 1,
+    "bytes": 41903
+  },
+  {
+    "file": "messy\\Downloads_Oct12\\GST102_L5.pdf",
+    "expected_course": "GST 102 Communication in English",
+    "kind": "batch",
+    "name_hint": true,
+    "notes": "portal export batch; footer 09:46",
+    "pages": 1,
+    "bytes": 45871
+  },
+  {
+    "file": "messy\\Downloads_Oct12\\GST102_L6.pdf",
+    "expected_course": "GST 102 Communication in English",
+    "kind": "batch",
+    "name_hint": true,
+    "notes": "portal export batch; footer 09:49",
+    "pages": 1,
+    "bytes": 36846
+  },
+  {
+    "file": "messy\\academic_calendar.pdf",
+    "expected_course": null,
+    "kind": "ambiguous",
+    "name_hint": false,
+    "notes": "timetable mentions all six courses roughly equally",
+    "pages": 1,
+    "bytes": 43411
+  },
+  {
+    "file": "messy\\course_registration_form.pdf",
+    "expected_course": null,
+    "kind": "ambiguous",
+    "name_hint": false,
+    "notes": "form fields; contains no course references",
+    "pages": 1,
+    "bytes": 44068
+  },
+  {
+    "file": "messy\\fees_receipt.pdf",
+    "expected_course": null,
+    "kind": "ambiguous",
+    "name_hint": false,
+    "notes": "receipt text; contains no course references",
+    "pages": 1,
+    "bytes": 44089
+  }
+]
