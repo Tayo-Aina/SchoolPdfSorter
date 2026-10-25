@@ -171,6 +171,45 @@ The memory lives outside your folders, at
 is shown, so cancelling a plan still saves the work. Deleting that file is safe:
 the next run simply checks everything again.
 
+## Updates
+
+The app is offline-first: it never needs the network, and a check is attempted at most
+once a day. Offline, a 404, or a malformed feed simply means "no update" — nothing is
+blocked or reported as an error.
+
+- `/update` checks now and offers the release as a normal chat message.
+- **Update now** downloads it, verifies the size and SHA-256, replaces the running exe
+  and restarts. Windows allows renaming a running exe, so no installer or admin rights
+  are involved. The replaced build is kept as `SchoolPdfSorterApp.previous.exe`.
+- `/rollback` puts that previous build back and restarts.
+- **Skip this version** remembers the choice; `/update` still installs it on request.
+
+The feed is a static file — `latest.json` at the repository root — so hosting costs
+nothing and a lookup is one small HTTPS request:
+
+```json
+{
+  "version": "1.1.0",
+  "url": "https://github.com/Tayo-Aina/SchoolPdfSorter/releases/download/v1.1.0/SchoolPdfSorterApp.exe",
+  "size": 116654590,
+  "sha256": "…",
+  "notes": "Course-structure import"
+}
+```
+
+To publish a release: bump `<Version>` in `src\SchoolPdfSorter.App\SchoolPdfSorter.App.csproj`,
+run `release.cmd` (it publishes, hashes the exe and writes `latest.json`), upload the exe
+to a GitHub release tagged `v<version>`, then commit and push `latest.json`.
+
+Notes and limits:
+
+- The SHA-256 protects against a broken or tampered download; it is not a signature. For
+  public distribution, sign the exe with Authenticode and pin the certificate.
+- Updates are full downloads (about 111 MB), not deltas.
+- If the app lives in a read-only folder (Program Files), the swap fails and the app says
+  so; keep it somewhere the user can write, as before.
+- Turn checks off with `"Enabled": false` in `%LocalAppData%\SchoolPdfSorter\update.json`.
+
 ## Build and test
 
 ```bat

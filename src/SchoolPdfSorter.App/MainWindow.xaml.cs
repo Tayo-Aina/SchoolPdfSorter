@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using SchoolPdfSorter.Engine;
 using SchoolPdfSorter.ViewModels;
 
 namespace SchoolPdfSorter;
@@ -47,12 +48,19 @@ public partial class MainWindow : Window
 
     // ------------------------------------------------------------------ flow
 
-    private void OnWindowLoaded(object sender, RoutedEventArgs e)
+    private async void OnWindowLoaded(object sender, RoutedEventArgs e)
     {
         Loaded -= OnWindowLoaded;
         ApplyDarkTitleBar();
         ScrollToBottom();
         InputBox.Focus();
+
+        // A broken build can be started with --rollback to put the saved previous one back.
+        if (UpdateFeed.WantsRollback(Environment.GetCommandLineArgs()) &&
+            await _session.TryRollbackAsync())
+            return;
+
+        _session.StartUpdateCheck();
         _session.StartFlow();
     }
 

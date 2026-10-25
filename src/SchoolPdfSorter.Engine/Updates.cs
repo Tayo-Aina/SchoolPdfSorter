@@ -194,7 +194,7 @@ public static class UpdateFeed
 
             return new UpdateCheck(manifest, version);
         }
-        catch (Exception) when (true)
+        catch (Exception)
         {
             // Offline is the normal case. Updates are a convenience, never a requirement.
             return null;
@@ -367,14 +367,16 @@ public static class UpdateFeed
 
     // ================================================================ settings
 
-    public static UpdateSettings LoadSettings()
+    public static UpdateSettings LoadSettings(string? path = null)
     {
+        path ??= SettingsPath;
+
         try
         {
-            if (File.Exists(SettingsPath))
+            if (File.Exists(path))
             {
                 var settings = JsonSerializer.Deserialize<UpdateSettings>(
-                    File.ReadAllText(SettingsPath), JsonOptions);
+                    File.ReadAllText(path), JsonOptions);
 
                 if (settings is not null)
                     return settings;
@@ -388,15 +390,20 @@ public static class UpdateFeed
         return new UpdateSettings();
     }
 
-    public static void SaveSettings(UpdateSettings settings)
+    public static void SaveSettings(UpdateSettings settings, string? path = null)
     {
+        path ??= SettingsPath;
+
         try
         {
-            Directory.CreateDirectory(DataDirectory);
+            var directory = Path.GetDirectoryName(path);
 
-            var temp = SettingsPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            if (!string.IsNullOrEmpty(directory))
+                Directory.CreateDirectory(directory);
+
+            var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             File.WriteAllText(temp, JsonSerializer.Serialize(settings, JsonOptions));
-            File.Move(temp, SettingsPath, overwrite: true);
+            File.Move(temp, path, overwrite: true);
         }
         catch
         {

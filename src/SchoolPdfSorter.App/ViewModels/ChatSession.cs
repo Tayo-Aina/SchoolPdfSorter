@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Windows;
 using SchoolPdfSorter.Engine;
 
 namespace SchoolPdfSorter.ViewModels;
@@ -25,6 +27,13 @@ public sealed class ChatSession
     private CancellationTokenSource? _cts;
 
     private List<string> _courses = new();
+
+    /// <summary>A newer build found by the background check, if any.</summary>
+    private UpdateCheck? _pendingUpdate;
+    private bool _updateCheckStarted;
+
+    /// <summary>True while PDFs are being read, OCR'd or moved — never restart an update then.</summary>
+    private bool _busy;
 
     public ChatSession(ChatViewModel vm) => _vm = vm;
 
@@ -245,7 +254,18 @@ public sealed class ChatSession
             }
         });
 
-        var freshResult = await Task.Run(() => sorter.Run(fresh, progress.Report, token), token);
+        SorterRunResult freshResult;
+
+        _busy = true;
+
+        try
+        {
+            freshResult = await Task.Run(() => sorter.Run(fresh, progress.Report, token), token);
+        }
+        finally
+        {
+            _busy = false;
+        }
 
         _vm.ClearProgress();
         token.ThrowIfCancellationRequested();
@@ -341,6 +361,9 @@ public sealed class ChatSession
             if (_undoStack.Count > 0)
                 options.Insert(0, ("Undo the last batch", "undo"));
 
+            if (_pendingUpdate is { } offered)
+                options.Insert(0, ($"Update to {offered.Version}", "update"));
+
             var next = await AskAsync("What's next?", false, options.ToArray());
 
             if (next == "restart")
@@ -349,9 +372,244 @@ public sealed class ChatSession
                 return;
             }
 
+            if (next == "update" && _pendingUpdate is { } pending)
+            {
+                ShowUpdateOffer(pending);
+                continue;
+            }
+
             DoUndo();
             _vm.Bot("Reverted. Anything else?");
         }
+    }
+
+    // ================================================================ updates
+
+    /// <summary>
+    /// A quiet startup check: at most once a day, never blocking, and it only posts a line when
+    /// a newer build exists. Offline means no line at all — the app never needs the network.
+    /// </summary>
+    public void StartUpdateCheck()
+    {
+        if (_updateCheckStarted)
+            return;
+
+        _updateCheckStarted = true;
+
+        var settings = UpdateFeed.LoadSettings();
+        var feed = UpdateFeed.ResolveFeedUrl(settings);
+        var now = DateTimeOffset.UtcNow;
+
+        if (!UpdateFeed.ShouldCheck(settings, feed, now))
+            return;
+
+        _ = Task.Run(async () =>
+        {
+            var check = await UpdateFeed.CheckAsync(feed, UpdateFeed.CurrentVersion());
+
+            settings = UpdateFeed.LoadSettings();
+            settings.LastCheckUtc = now;
+            UpdateFeed.SaveSettings(settings);
+
+            if (check is null ||
+                string.Equals(settings.SkippedVersion, check.Manifest.Version,
+                    StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _pendingUpdate = check;
+
+            OnUiThread(() => _vm.Add(
+                $"Update {check.Version} is available ({check.SizeText}). Type /update to install it.",
+                ChatRole.System));
+        });
+    }
+
+    /// <summary>Checks now (if the startup check has not found one yet) and offers it.</summary>
+    private async Task CheckAndOfferUpdateAsync()
+    {
+        if (_busy)
+        {
+            _vm.Add("Let me finish this run first, then ask again.", ChatRole.System);
+            return;
+        }
+
+        var check = _pendingUpdate;
+
+        if (check is null)
+        {
+            var settings = UpdateFeed.LoadSettings();
+            var feed = UpdateFeed.ResolveFeedUrl(settings);
+
+            if (!UpdateFeed.IsConfigured(feed))
+            {
+                _vm.Add("This build has no update feed configured, so updates are off.", ChatRole.System);
+                return;
+            }
+
+            _vm.SetProgress(0, "Checking for updates…", "");
+
+            try
+            {
+                check = await UpdateFeed.CheckAsync(feed, UpdateFeed.CurrentVersion());
+            }
+            finally
+            {
+                _vm.ClearProgress();
+            }
+
+            settings = UpdateFeed.LoadSettings();
+            settings.LastCheckUtc = DateTimeOffset.UtcNow;
+            UpdateFeed.SaveSettings(settings);
+
+            if (check is null)
+            {
+                _vm.Add($"You're on the newest version ({UpdateFeed.CurrentVersion().ToString(3)}).",
+                    ChatRole.Success);
+                return;
+            }
+
+            _pendingUpdate = check;
+        }
+
+        ShowUpdateOffer(check);
+    }
+
+    /// <summary>
+    /// The offer is plain message buttons rather than a prompt: an update can be offered while
+    /// another prompt is waiting, and it must not steal that prompt's answer.
+    /// </summary>
+    private void ShowUpdateOffer(UpdateCheck check)
+    {
+        var text = new StringBuilder($"Update {check.Version} is available ({check.SizeText}).");
+
+        if (!string.IsNullOrWhiteSpace(check.Manifest.Notes))
+            text.Append('\n').Append(check.Manifest.Notes.Trim());
+
+        text.AppendLine().AppendLine();
+        text.Append("I download it, check its SHA-256, replace this copy and restart. The current\n")
+            .Append("build is kept as a .previous.exe, so /rollback can undo it.");
+
+        var message = _vm.Bot(text.ToString());
+
+        AddOfferReply(message, "Update now", () => _ = InstallUpdateAsync(check));
+        AddOfferReply(message, "Later", () => _vm.Add("Postponed. Type /update whenever you want it.", ChatRole.System));
+        AddOfferReply(message, "Skip this version", () => SkipUpdateVersion(check));
+    }
+
+    private void AddOfferReply(ChatMessage message, string label, Action action)
+    {
+        var reply = new QuickReply(label, label);
+        reply.Command = new RelayCommand(() =>
+        {
+            message.ClearReplies();
+            _vm.User(label);
+            action();
+        });
+
+        message.AddReply(reply);
+    }
+
+    private void SkipUpdateVersion(UpdateCheck check)
+    {
+        var settings = UpdateFeed.LoadSettings();
+        settings.SkippedVersion = check.Manifest.Version;
+        UpdateFeed.SaveSettings(settings);
+
+        if (_pendingUpdate?.Manifest.Version == check.Manifest.Version)
+            _pendingUpdate = null;
+
+        _vm.Add($"Okay — I won't offer {check.Version} again. /update still installs it on request.",
+            ChatRole.System);
+    }
+
+    private async Task InstallUpdateAsync(UpdateCheck check)
+    {
+        if (_busy)
+        {
+            _vm.Add("Let me finish this run first, then ask again.", ChatRole.System);
+            return;
+        }
+
+        _vm.StepLabel = $"Updating to {check.Version}";
+        _vm.SetProgress(0, $"Downloading {check.Version}…", "");
+
+        try
+        {
+            IProgress<double> progress = new Progress<double>(fraction =>
+                _vm.SetProgress(fraction * 100, $"Downloading {check.Version}…", $"{fraction:P0}"));
+
+            var staged = await UpdateFeed.DownloadAsync(check.Manifest, progress);
+
+            UpdateFeed.CleanStaging(check.Manifest.Version);
+            _vm.ClearProgress();
+
+            var exe = Environment.ProcessPath;
+            string? error = null;
+
+            if (string.IsNullOrEmpty(exe) || !UpdateFeed.TrySwap(exe, staged, out _, out error))
+            {
+                _vm.Add($"I couldn't install it: {error ?? "I don't know where this app lives."}", ChatRole.Error);
+                return;
+            }
+
+            _pendingUpdate = null;
+            _vm.Add($"Installed {check.Version}. Restarting — /rollback undoes it if needed.", ChatRole.Success);
+            _vm.StepLabel = "Restarting…";
+
+            await Task.Delay(500);
+            Restart(exe);
+        }
+        catch (Exception ex)
+        {
+            _vm.ClearProgress();
+            _vm.Add($"The update failed: {ex.Message}", ChatRole.Error);
+        }
+    }
+
+    /// <summary>Puts the saved previous build back and restarts it. False when there is none.</summary>
+    public async Task<bool> TryRollbackAsync()
+    {
+        if (_busy)
+        {
+            _vm.Add("Let me finish this run first, then ask again.", ChatRole.System);
+            return false;
+        }
+
+        var exe = Environment.ProcessPath;
+        string? error = null;
+
+        if (string.IsNullOrEmpty(exe) || !UpdateFeed.TryRestore(exe, out error))
+        {
+            _vm.Add(error ?? "There's no previous build to go back to.", ChatRole.Error);
+            return false;
+        }
+
+        _vm.Add("Restored the previous build. Restarting…", ChatRole.Success);
+        await Task.Delay(500);
+        Restart(exe);
+
+        return true;
+    }
+
+    private static void Restart(string exe)
+    {
+        Process.Start(new ProcessStartInfo(exe)
+        {
+            UseShellExecute = true,
+            WorkingDirectory = Path.GetDirectoryName(exe)
+        });
+
+        Application.Current?.Shutdown();
+    }
+
+    private static void OnUiThread(Action action)
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+
+        if (dispatcher is null || dispatcher.CheckAccess())
+            action();
+        else
+            dispatcher.BeginInvoke(action);
     }
 
     // ================================================================ courses
@@ -679,29 +937,38 @@ public sealed class ChatSession
         IProgress<int> progress = new Progress<int>(done =>
             _vm.SetProgress(done * 100.0 / moves.Count, $"Filing {done} of {moves.Count}…"));
 
-        await Task.Run(() =>
+        _busy = true;
+
+        try
         {
-            for (var i = 0; i < moves.Count; i++)
+            await Task.Run(() =>
             {
-                token.ThrowIfCancellationRequested();
-
-                var item = moves[i];
-
-                try
+                for (var i = 0; i < moves.Count; i++)
                 {
-                    var destination = FileFiler.MoveInto(item, targetDir);
-                    undoBatch.Add(new MoveRecord(item.File.Path, destination));
-                    moved++;
-                }
-                catch (Exception ex)
-                {
-                    failed++;
-                    errors.Add($"{item.File.FileName}: {ex.Message}");
-                }
+                    token.ThrowIfCancellationRequested();
 
-                progress.Report(i + 1);
-            }
-        }, token);
+                    var item = moves[i];
+
+                    try
+                    {
+                        var destination = FileFiler.MoveInto(item, targetDir);
+                        undoBatch.Add(new MoveRecord(item.File.Path, destination));
+                        moved++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failed++;
+                        errors.Add($"{item.File.FileName}: {ex.Message}");
+                    }
+
+                    progress.Report(i + 1);
+                }
+            }, token);
+        }
+        finally
+        {
+            _busy = false;
+        }
 
         _vm.ClearProgress();
 
@@ -964,6 +1231,14 @@ public sealed class ChatSession
                     ChatRole.System);
                 return true;
 
+            case "/update":
+                _ = CheckAndOfferUpdateAsync();
+                return true;
+
+            case "/rollback":
+                _ = TryRollbackAsync();
+                return true;
+
             case "/subfolders":
                 _vm.IncludeSubfolders = !_vm.IncludeSubfolders;
                 _vm.Add($"Include subfolders: {(_vm.IncludeSubfolders ? "on" : "off")}", ChatRole.System);
@@ -1019,6 +1294,8 @@ public sealed class ChatSession
             "  /undo              revert the last batch of moves\n" +
             "  /courses           show the current course list\n" +
             "  /subfolders        toggle scanning of nested folders\n" +
+            "  /update            check for and install a newer build\n" +
+            "  /rollback          go back to the previous build\n" +
             "  /support           show or hide the support section\n" +
             "\n" +
             "A PDF moves only when exactly one course code is found in its name, title,\n" +
