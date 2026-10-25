@@ -1,0 +1,14 @@
+# Deploy with:  npx wrangler deploy
+# The KV namespace id comes from:
+#   npx wrangler kv namespace create USAGE
+
+name = "schoolpdfsorter-usage"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+[[kv_namespaces]]
+binding = "USAGE"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# STATS_TOKEN is a secret, not a plain variable:
+#   npx wrangler secret put STATS_TOKEN

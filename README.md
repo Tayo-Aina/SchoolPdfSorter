@@ -210,6 +210,34 @@ Notes and limits:
   so; keep it somewhere the user can write, as before.
 - Turn checks off with `"Enabled": false` in `%LocalAppData%\SchoolPdfSorter\update.json`.
 
+## Counting installs
+
+Two different numbers:
+
+- `tools/download-count.ps1` prints GitHub's download counts per release. Instant and
+  free, but a download is not a person: one user can download several times.
+- Distinct installs need the anonymous counter in `tools/usage-worker` (Cloudflare
+  Workers, free tier). Deploy it, then either put its address in
+  `%LocalAppData%\SchoolPdfSorter\usage.json` or replace `PlaceholderCounterUrl` in
+  `UsageCounter.cs` and cut a release.
+
+How the count works:
+
+- A random 32-character id is created on first run and stored at
+  `%LocalAppData%\SchoolPdfSorter\install-id`. It is not derived from the machine,
+  the user or the folder being sorted.
+- Once a day the app requests `<counter>?id=<id>&v=<version>`. Nothing else is sent.
+- The worker keeps one "seen at least once" key per id, and a "seen today" key that
+  expires after 48 hours. `/stats?token=...` returns `total` and `today`.
+- If the counter URL is the placeholder, the app sends nothing. `"enabled": false`
+  in `usage.json` turns it off for one machine.
+- This is still telemetry, so it is documented here rather than hidden. The id is
+  random, but the request does reach a third-party server.
+
+`tools/UsageDashboard` is a small window that shows the two counter numbers plus GitHub
+downloads, and records one row per day so a history builds up. Run
+`tools\UsageDashboard\run.cmd`.
+
 ## Support section
 
 The "Support us" button appears only when support details were sealed into the build.

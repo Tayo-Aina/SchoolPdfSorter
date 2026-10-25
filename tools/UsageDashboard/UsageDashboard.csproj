@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>UsageDashboard</AssemblyName>
+    <RootNamespace>UsageDashboard</RootNamespace>
+    <Product>School PDF Sorter usage</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SchoolPdfSorter.Engine\SchoolPdfSorter.Engine.csproj" />
+  </ItemGroup>
+
+</Project>

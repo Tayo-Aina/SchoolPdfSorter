@@ -61,6 +61,7 @@ public partial class MainWindow : Window
             return;
 
         _session.StartUpdateCheck();
+        _session.StartUsagePing();
         _session.StartFlow();
     }
 

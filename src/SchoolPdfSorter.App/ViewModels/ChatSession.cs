@@ -35,6 +35,9 @@ public sealed class ChatSession
     /// <summary>True while PDFs are being read, OCR'd or moved, never restart an update then.</summary>
     private bool _busy;
 
+    /// <summary>The anonymous usage count is attempted at most once per launch.</summary>
+    private bool _usagePingStarted;
+
     public ChatSession(ChatViewModel vm) => _vm = vm;
 
     /// <summary>True while a prompt is waiting for something the user can type.</summary>
@@ -629,6 +632,38 @@ public sealed class ChatSession
             action();
         else
             dispatcher.BeginInvoke(action);
+    }
+
+    /// <summary>
+    /// One anonymous count per day, if a counter is configured. The id is random and local;
+    /// nothing else is sent. The request is silent and a failure changes nothing.
+    /// </summary>
+    public void StartUsagePing()
+    {
+        if (_usagePingStarted)
+            return;
+
+        _usagePingStarted = true;
+
+        var settings = UsageCounter.LoadSettings();
+        var url = UsageCounter.ResolveCounterUrl(settings);
+        var now = DateTimeOffset.UtcNow;
+
+        if (!UsageCounter.ShouldPing(settings, url, now))
+            return;
+
+        _ = Task.Run(async () =>
+        {
+            var id = UsageCounter.GetOrCreateInstallId();
+            var version = UpdateFeed.CurrentVersion().ToString(3);
+
+            if (!await UsageCounter.PingAsync(url, id, version))
+                return;
+
+            var latest = UsageCounter.LoadSettings();
+            latest.LastPingUtc = now;
+            UsageCounter.SaveSettings(latest);
+        });
     }
 
     // ================================================================ courses
