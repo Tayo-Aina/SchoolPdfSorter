@@ -218,7 +218,7 @@ Two different numbers:
   free, but a download is not a person: one user can download several times.
 - Distinct installs need the anonymous counter in `tools/usage-worker` (Cloudflare
   Workers, free tier). Deploy it, then either put its address in
-  `%LocalAppData%\SchoolPdfSorter\usage.json` or replace `PlaceholderCounterUrl` in
+  `%LocalAppData%\SchoolPdfSorter\usage.json` or replace `DefaultCounterUrl` in
   `UsageCounter.cs` and cut a release.
 
 How the count works:
@@ -229,7 +229,7 @@ How the count works:
 - Once a day the app requests `<counter>?id=<id>&v=<version>`. Nothing else is sent.
 - The worker keeps one "seen at least once" key per id, and a "seen today" key that
   expires after 48 hours. `/stats?token=...` returns `total` and `today`.
-- If the counter URL is the placeholder, the app sends nothing. `"enabled": false`
+- If the counter URL is the example address, the app sends nothing. `"enabled": false`
   in `usage.json` turns it off for one machine.
 - This is still telemetry, so it is documented here rather than hidden. The id is
   random, but the request does reach a third-party server.

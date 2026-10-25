@@ -75,7 +75,7 @@ public sealed class UsageTests
 
     [Fact]
     public void Placeholder_counter_is_not_configured()
-        => Assert.False(UsageCounter.IsConfigured(UsageCounter.PlaceholderCounterUrl));
+        => Assert.False(UsageCounter.IsConfigured(UsageCounter.DisabledCounterUrl));
 
     [Theory]
     [InlineData("https://counter.example.net/ping", true)]
@@ -99,7 +99,7 @@ public sealed class UsageTests
         Assert.False(UsageCounter.ShouldPing(
             new UsageSettings { Enabled = false }, url, now));
         Assert.False(UsageCounter.ShouldPing(
-            new UsageSettings(), UsageCounter.PlaceholderCounterUrl, now));
+            new UsageSettings(), UsageCounter.DisabledCounterUrl, now));
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public sealed class UsageTests
     [Fact]
     public void Ping_is_skipped_for_an_unconfigured_counter()
         => Assert.False(UsageCounter.PingAsync(
-            UsageCounter.PlaceholderCounterUrl,
+            UsageCounter.DisabledCounterUrl,
             "0123456789abcdef0123456789abcdef", "1.2.3").GetAwaiter().GetResult());
 
     // ================================================================ settings

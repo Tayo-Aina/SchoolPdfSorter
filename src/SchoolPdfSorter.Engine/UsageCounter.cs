@@ -24,11 +24,12 @@ public sealed class UsageSettings
 /// </summary>
 public static class UsageCounter
 {
-    /// <summary>
-    /// Replace with the deployed worker's address (see tools/usage-worker). Until then the
-    /// ping is skipped, which is also what a plain source build does.
-    /// </summary>
-    public const string PlaceholderCounterUrl =
+    /// <summary>The deployed counter. Replace it if the worker moves.</summary>
+    public const string DefaultCounterUrl =
+        "https://schoolpdfsorter-usage.tayodavidaina.workers.dev/ping";
+
+    /// <summary>An address that is deliberately not configured, used by tests and docs.</summary>
+    public const string DisabledCounterUrl =
         "https://schoolpdfsorter-usage.example.workers.dev/ping";
 
     /// <summary>Set this environment variable to test against a local counter.</summary>
@@ -149,7 +150,7 @@ public static class UsageCounter
 
         var fromEnvironment = Environment.GetEnvironmentVariable(CounterUrlVariable);
 
-        return string.IsNullOrWhiteSpace(fromEnvironment) ? PlaceholderCounterUrl : fromEnvironment;
+        return string.IsNullOrWhiteSpace(fromEnvironment) ? DefaultCounterUrl : fromEnvironment;
     }
 
     /// <summary>Counting is on only when a real endpoint is configured.</summary>

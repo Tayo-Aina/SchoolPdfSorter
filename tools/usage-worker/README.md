@@ -42,7 +42,7 @@ Either put it in `%LocalAppData%\SchoolPdfSorter\usage.json` on one machine:
 }
 ```
 
-Or, for a release that counts every user, replace `PlaceholderCounterUrl` in
+Or, for a release that counts every user, replace `DefaultCounterUrl` in
 `src/SchoolPdfSorter.Engine/UsageCounter.cs` before running `release.cmd`.
 
 ## Read the numbers
@@ -68,4 +68,4 @@ of daily users.
 
 The id is random and not linked to a person, an account or a machine. Still, this is
 telemetry: the app contacts a server once a day. Turn it off with `"enabled": false` in
-`usage.json`, or build from source with the placeholder URL, which sends nothing.
+`usage.json`, or build from source with the example URL, which sends nothing.
