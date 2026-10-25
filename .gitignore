@@ -15,3 +15,6 @@ probe/refs/*.f32.bin
 # committed to a public repository.
 support.local.json
 src/SchoolPdfSorter.App/Support/support.g.cs
+
+# Wrangler's local state (account cache, build cache)
+tools/usage-worker/.wrangler/
