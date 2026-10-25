@@ -40,7 +40,9 @@ $manifest = [ordered]@{
     notes   = ''
 } | ConvertTo-Json
 
-Set-Content -Path (Join-Path $root 'latest.json') -Value $manifest -Encoding utf8
+# No BOM: the updater parses this file as JSON, and a BOM is not part of JSON.
+$manifestPath = Join-Path $root 'latest.json'
+[System.IO.File]::WriteAllText($manifestPath, $manifest, [System.Text.UTF8Encoding]::new($false))
 
 Write-Host ''
 Write-Host "Published $version  ($([math]::Round($size / 1MB, 1)) MB)"

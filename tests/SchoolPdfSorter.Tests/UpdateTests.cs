@@ -78,6 +78,10 @@ public sealed class UpdateTests
     public void ParseManifest_allows_http_on_loopback_for_local_testing()
         => Assert.NotNull(UpdateFeed.ParseManifest(Manifest(url: "http://127.0.0.1:8123/app.exe")));
 
+    [Fact]
+    public void ParseManifest_tolerates_a_utf8_bom()
+        => Assert.NotNull(UpdateFeed.ParseManifest("\uFEFF" + Manifest()));
+
     [Theory]
     [InlineData("")]
     [InlineData("abc")]

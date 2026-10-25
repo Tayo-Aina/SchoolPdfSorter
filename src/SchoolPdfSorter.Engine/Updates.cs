@@ -138,6 +138,9 @@ public static class UpdateFeed
         if (string.IsNullOrWhiteSpace(json))
             return null;
 
+        // Feeds written on Windows often start with a UTF-8 BOM; it is not part of the JSON.
+        json = json.Trim().TrimStart('\uFEFF').TrimStart();
+
         UpdateManifest? manifest;
 
         try
