@@ -81,7 +81,11 @@ static Bitmap Render(int size)
     g.SmoothingMode = SmoothingMode.AntiAlias;
     g.PixelOffsetMode = PixelOffsetMode.HighQuality;
     g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-    g.Clear(Color.Transparent);
+
+    // Opaque white ground, same as the video sorter icon: a transparent background would
+    // leave a black page unreadable against a dark Explorer, where it looks like the glyph
+    // is missing.
+    g.Clear(Color.White);
 
     float P(double v) => (float)(v / 100.0 * size);
 
@@ -185,7 +189,11 @@ static byte[] Encode(Bitmap bitmap)
 
     BitConverter.GetBytes((uint)headerSize).CopyTo(buffer, 0);
     BitConverter.GetBytes((uint)width).CopyTo(buffer, 4);
-    BitConverter.GetBytes((uint)height).CopyTo(buffer, 8); // positive: bottom-up
+
+    // The height in an ICO counts the XOR bitmap and the AND mask together. Writing only the
+    // XOR height with a mask appended is read inconsistently, which crops and stretches the
+    // glyph in Explorer.
+    BitConverter.GetBytes((uint)(height * 2)).CopyTo(buffer, 8);
     BitConverter.GetBytes((ushort)1).CopyTo(buffer, 12);
     BitConverter.GetBytes((ushort)32).CopyTo(buffer, 14);
     BitConverter.GetBytes((uint)imageSize).CopyTo(buffer, 20);
