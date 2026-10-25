@@ -42,11 +42,11 @@ public sealed class UpdateSettings
 public static class UpdateFeed
 {
     /// <summary>
-    /// Replace OWNER with the GitHub account/repository that publishes the releases. Until it
-    /// is replaced the check is skipped entirely, so a fresh checkout never calls the network.
+    /// The release feed this build checks. It is a plain static file next to the releases, so a
+    /// failed lookup or a 404 simply means "no update", never an error.
     /// </summary>
     public const string PlaceholderFeedUrl =
-        "https://raw.githubusercontent.com/OWNER/SchoolPdfSorter/main/latest.json";
+        "https://raw.githubusercontent.com/Tayo-Aina/SchoolPdfSorter/main/latest.json";
 
     /// <summary>Set this environment variable to test against a local feed without rebuilding.</summary>
     public const string FeedUrlVariable = "SCHOOLPDFSORTER_UPDATE_FEED";
