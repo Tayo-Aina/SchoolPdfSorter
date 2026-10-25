@@ -85,14 +85,15 @@ static Bitmap Render(int size)
 
     float P(double v) => (float)(v / 100.0 * size);
 
-    // The page: a portrait sheet with a cut corner at the top right.
+    // The page: a portrait sheet with a cut corner at the top right, centred on the canvas
+    // so the glyph does not sit heavy on one side at any size.
     var page = new[]
     {
-        new PointF(P(18), P(8)),
-        new PointF(P(58), P(8)),
-        new PointF(P(80), P(30)),
-        new PointF(P(80), P(92)),
-        new PointF(P(18), P(92))
+        new PointF(P(17), P(6)),
+        new PointF(P(57), P(6)),
+        new PointF(P(83), P(32)),
+        new PointF(P(83), P(94)),
+        new PointF(P(17), P(94))
     };
 
     using (var brush = new SolidBrush(Color.Black))
@@ -218,6 +219,22 @@ static byte[] Encode(Bitmap bitmap)
     finally
     {
         bitmap.UnlockBits(data);
+    }
+
+    // The AND mask matters: zero means "opaque", so a transparent background that is left
+    // zeroed renders as a solid black square in shells that prefer the mask over the alpha
+    // channel. One bit per pixel, 1 = transparent, starting after the header and the XOR data.
+    for (var y = 0; y < height; y++)
+    {
+        var maskRow = headerSize + imageSize + y * maskRowBytes;
+
+        for (var x = 0; x < width; x++)
+        {
+            if (buffer[headerSize + y * rowBytes + x * 4 + 3] >= 128)
+                continue;
+
+            buffer[maskRow + x / 8] |= (byte)(1 << (7 - x % 8));
+        }
     }
 
     return buffer;

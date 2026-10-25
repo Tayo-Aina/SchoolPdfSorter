@@ -31,14 +31,14 @@
             <DockPanel LastChildFill="False">
 
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <!-- The in-window mark: the same black page and white arrow as icon.ico. -->
                     <Border Width="36" Height="36" CornerRadius="0" Background="{StaticResource AccentBrush}">
-                        <Path Data="M6,3 L17,3 L24,10 L24,27 L6,27 Z M17,3 L17,10 L24,10"
-                              Fill="#000000"
-                              Stretch="Uniform"
-                              Width="19" Height="19"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              StrokeThickness="0" />
+                        <Canvas Width="36" Height="36">
+                            <Path Data="M7.5,4 L20,4 L28.5,12.5 L28.5,32 L7.5,32 Z"
+                                  Fill="#000000" StrokeThickness="0" />
+                            <Path Data="M14.7,13 L21.3,13 L21.3,20.5 L25.4,20.5 L18,28 L10.6,20.5 L14.7,20.5 Z"
+                                  Fill="#FFFFFF" StrokeThickness="0" />
+                        </Canvas>
                     </Border>
                     <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="School PDF Sorter"
