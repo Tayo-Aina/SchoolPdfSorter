@@ -11,7 +11,8 @@
     <RootNamespace>SchoolPdfSorter</RootNamespace>
     <Product>School PDF Sorter</Product>
     <AssemblyTitle>School PDF Sorter</AssemblyTitle>
-    <Version>1.0.4</Version>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <Version>1.0.5</Version>
     <Description>Chat-driven desktop organizer that files school PDFs into course folders by strict course-code matching, with local OCR for scans.</Description>
 
     <!-- Keep the published output small: only English satellite resources. -->
