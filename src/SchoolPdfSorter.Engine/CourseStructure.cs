@@ -20,18 +20,18 @@ public sealed record CourseStructureResult(
 
 /// <summary>
 /// Turns a course structure into a course list: a portal page copy, a printed table, an
-/// exported spreadsheet, or the OCR of any of those. Such a dump is a stream of table cells —
+/// exported spreadsheet, or the OCR of any of those. Such a dump is a stream of table cells -
 /// code and title in one cell or split across several, with unit numbers, type letters,
 /// department names, "TOTAL" rows and page furniture in between.
 ///
 /// Two readings are accepted. A code that opens a cell is a course row and is always taken
 /// (that covers a copied table). A code sitting inside a cell is taken only when the document
-/// spells that department cleanly at least twice — that covers rows where every column ended
+/// spells that department cleanly at least twice, that covers rows where every column ended
 /// up on one line ("Course Code: EIE 311, Electromagnetic Fields, 3, C"), while words that
 /// merely look like codes ("Page 12", "Office 2013", "Level 100") stay out of the list.
 ///
 /// Course codes are what matter. A title only decorates the folder name, so a title that is
-/// cut short or never found is harmless — and a department is only corrected when the reading
+/// cut short or never found is harmless, and a department is only corrected when the reading
 /// could not be a real one ("ElE314" is EIE 314), never by guessing between two plausible
 /// spellings ("CST" stays CST even though "CIT" is also listed).
 /// </summary>
@@ -42,12 +42,12 @@ public static class CourseStructure
     /// optional trailing letter ("EIE326", "EIE 326", "eie-326", "MTH 101A", "CS 61A").
     /// </summary>
     private static readonly Regex CodePattern = new(
-        @"(?<![A-Za-z0-9])([A-Za-z]{2,6})[\s\-–—_:./]*(\d{2,5})([A-Za-z]?)(?![A-Za-z0-9])",
+        @"(?<![A-Za-z0-9])([A-Za-z]{2,6})[\s\-_:./]*(\d{2,5})([A-Za-z]?)(?![A-Za-z0-9])",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    /// <summary>A row number or bullet in front of a code: "1.", "12)", "(1)", "- ", "* ", "• ".</summary>
+    /// <summary>A row number, dash or bullet in front of a code: "1.", "12)", "(1)", "- ", "* ".</summary>
     private static readonly Regex Decoration = new(
-        @"^(?:\d{1,3}[.)\]]|\(\d{1,3}\)|[-–—*•·]+)[\s:]*",
+        @"^(?:\d{1,3}[.)\]]|\(\d{1,3}\)|[-*\u2022\u00B7\u2013\u2014]+)[\s:]*",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex RowPattern = new(
@@ -69,9 +69,9 @@ public static class CourseStructure
         @"^(?:unit|units|type|cr\.?\s*unit|course\s*code|code|title|level)\s*[.:]?\s*(?:\d{1,4}|[A-Za-z]{1,3})\.?$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-    /// <summary>A leading "Title:" / "Course Title –" label in front of a real title.</summary>
+    /// <summary>A leading "Title:" / "Course Title -" label in front of a real title.</summary>
     private static readonly Regex LeadLabel = new(
-        @"^(?:[A-Za-z][A-Za-z .']{0,15}[:;–-]\s*)+",
+        @"^(?:[A-Za-z][A-Za-z .']{0,15}[:;\-]\s*)+",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>Row-number column headers: "Sl. No", "S/N", "Lgo", "No.".</summary>
@@ -194,7 +194,7 @@ public static class CourseStructure
 
     /// <summary>
     /// True when the pasted text reads as a structure rather than a hand-typed course list:
-    /// several course rows, and the columns a structure table has (units, types, totals) —
+    /// several course rows, and the columns a structure table has (units, types, totals) -
     /// a typed list has neither, so it keeps its exact wording.
     /// </summary>
     public static bool LooksLikeStructure(string? text)
@@ -255,7 +255,7 @@ public static class CourseStructure
     /// <summary>
     /// The title of a course: the rest of its cell, or, when the code sits alone there, the
     /// next few cells until the units column or the next course. A title is only ever taken
-    /// from the cells that follow the code — the cells before it are the department column,
+    /// from the cells that follow the code, the cells before it are the department column,
     /// and putting those in the label would name folders after the wrong thing.
     /// </summary>
     private static string TitleOf(Row row, List<string> cells, HashSet<string> vocabulary)
@@ -340,7 +340,7 @@ public static class CourseStructure
 
                 // A code in the middle of a cell is only a course row when the cell still looks
                 // like one: it carries the row's own columns ("Industrial CHM111 General Physical
-                // Chemistry 3 C Chemistry" — a copied table with the department glued in front of
+                // Chemistry 3 C Chemistry", a copied table with the department glued in front of
                 // the code) or it carries the labels of a per-course line ("Course Code: EIE 311,
                 // Title: Signals and Systems, Unit: 3"). Capital letters, three or four digits and
                 // no furniture word ("Office 2013", "Page 12") are required either way, so prose
@@ -375,7 +375,7 @@ public static class CourseStructure
         "code", "title", "unit", "type", "course", "prerequisite"
     };
 
-    /// <summary>The code a cell starts with — a course row in any table layout — or null.</summary>
+    /// <summary>The code a cell starts with, a course row in any table layout, or null.</summary>
     private static Match? CodeAtStartOf(string cell)
     {
         var text = StripDecoration(cell);
@@ -462,7 +462,7 @@ public static class CourseStructure
         if (units.Success && units.Index > 0)
             rest = rest[..units.Index];
 
-        return Collapse(rest.Trim(' ', '-', ',', '.', ':', '|', '/', '(', ')', '–', '—', '’', '\''));
+        return Collapse(rest.Trim(' ', '-', ',', '.', ':', '|', '/', '(', ')', '\''));
     }
 
     private static string BuildLabel(string prefix, string digits, string suffix, string title)
@@ -594,7 +594,7 @@ public static class CourseStructure
     /// a department tag this document never spells cleanly anywhere else ("NE 414"), which is
     /// what a misread column looks like, and a tag that is plausible but appears only once or
     /// twice while a near-identical one appears all over ("GRC 219" beside 17 clean "GEC").
-    /// Nothing is changed on their account — they are reported, never guessed at.
+    /// Nothing is changed on their account, they are reported, never guessed at.
     /// </summary>
     private static List<StructureNote> FindSuspects(List<ParsedCourse> courses, Dictionary<string, int> votes)
     {
@@ -620,7 +620,7 @@ public static class CourseStructure
 
                 result.Add(new StructureNote(course.Label, closest.Count == 0
                     ? $"the tag {prefix} appears in no clean course row of this document"
-                    : $"the tag {prefix} appears in no clean course row — closest here: " +
+                    : $"the tag {prefix} appears in no clean course row, closest here: " +
                       string.Join(", ", closest)));
                 continue;
             }

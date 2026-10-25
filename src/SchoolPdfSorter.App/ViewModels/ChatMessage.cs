@@ -75,7 +75,7 @@ public sealed class ChatMessage : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-/// <summary>Minimal ICommand — no frameworks, no reflection.</summary>
+/// <summary>Minimal ICommand, no frameworks, no reflection.</summary>
 public sealed class RelayCommand : ICommand
 {
     private readonly Action _execute;

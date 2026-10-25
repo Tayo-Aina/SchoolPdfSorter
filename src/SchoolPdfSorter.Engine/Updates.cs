@@ -62,7 +62,7 @@ public static class UpdateFeed
 {
     /// <summary>
     /// The release feed this build checks. It is a plain static file next to the releases, so a
-    /// failed lookup or a 404 simply means "no update", never an error.
+    /// failed lookup or a 404 means "no update", never an error.
     /// </summary>
     public const string PlaceholderFeedUrl =
         "https://raw.githubusercontent.com/Tayo-Aina/SchoolPdfSorter/main/latest.json";

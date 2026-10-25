@@ -9,7 +9,7 @@ the file does not move at all. Timetables and multi-course past-question packs a
 always left alone. There is no `_Unsorted` folder and no cleanup sweep.
 
 It never renames a file. A very strong name/title match on an untouched file can
-be shown as a note (`looks like EIE 301 …`), but that note is only a hint: it
+be shown as a note (`looks like EIE 301 ...`), but that note is only a hint: it
 never moves or renames anything.
 
 ## Run it
@@ -81,13 +81,13 @@ such as `AB 80`.
 
 A file that reaches the end with no code, or with several codes, stays in its
 original folder and is listed once at the end. Files with a very high-confidence
-name/title match get a `looks like …` note in that list. The note is not a move
+name/title match get a `looks like ...` note in that list. The note is not a move
 and not a rename.
 
 ## Using the app
 
 1. Paste the source folder (or drag it onto the window).
-2. Give me your courses — either as a list or as your whole course structure:
+2. Give me your courses. You can type a list or paste your whole course structure:
 
    ```text
    ECON 301 Microeconomics
@@ -99,8 +99,8 @@ and not a rename.
    ```
 
    Or paste a course-structure table (a portal page you copied, an exported
-   spreadsheet, the printed structure) — or drop the file that holds it. I read the
-   course codes out of it. See [Course structure](#course-structure) below.
+   spreadsheet or the printed structure), or drop in the file that holds it. I read
+   the course codes out of it. See [Course structure](#course-structure) below.
 
 3. Paste the target folder. Its parent folder must already exist.
 4. Review the plan. Nothing is written to disk until you approve it.
@@ -116,14 +116,14 @@ folder is excluded when it is inside the source folder.
 You do not have to type your course list. At step 2 you can hand me the whole
 course structure and I turn it into the list:
 
-- **Paste it** — copy the structure table from the portal or a PDF and paste it in.
+- **Paste it.** Copy the structure table from the portal or a PDF and paste it in.
   Line breaks, semicolons, tabs, commas and pipe tables all work, and a code and its
   title may share one cell or sit in separate columns.
-- **Drop the file** — drag a `.pdf`, `.txt`, `.md`, `.csv` or `.rtf` onto the window,
-  use **Browse…**, or copy the file in Explorer and press `Ctrl+V`. A PDF is read from
-  its text layer; a scanned PDF is read with the same offline OCR the sort uses, which
-  keeps the table's rows together.
-- **Type the list as before** — the plain path is untouched, so an ordinary course
+- **Drop the file.** Drag a `.pdf`, `.txt`, `.md`, `.csv` or `.rtf` onto the window,
+  use **Browse...**, or copy the file in Explorer and press `Ctrl+V`. A PDF is read directly.
+  A scanned PDF is read with the same offline text reader the sort uses,
+  which keeps the table's rows together.
+- **Type the list as before.** The plain path is untouched, so an ordinary course
   list still keeps its exact wording.
 
 The parser only pulls a course from a cell that opens with a code, or from a cell
@@ -135,9 +135,9 @@ code only (`EIE 326`).
 
 A scanned structure is imperfect, so the app is careful about it:
 
-- A department is corrected only when the scan reading could not be a real one —
-  `ElE314` → `EIE 314`, `py111` → `PHY 111`, `GE0220` → `GEC 220` — and each such
-  fix is listed for you to check.
+- A department is corrected only when the scan reading could not be a real one.
+  For example, `ElE314` becomes `EIE 314` and `py111` becomes `PHY 111`. Each fix
+  is listed for you to check.
 - Two plausible spellings are **never** merged: `CST 111` is not folded into `CIT`,
   even when one of them appears far more often. Instead a line like `GRC 324` is
   reported ("GEC is spelled that way 17 times here") and left exactly as read.
@@ -147,21 +147,21 @@ A scanned structure is imperfect, so the app is careful about it:
 Because a scanned structure can lose a course this way, after finding your PDFs the
 app also reads the **file names** in that folder and, when one or two dozen files all
 say `GST 311` or `ICE 414` while your list lacks them, it shows that list and asks
-whether to add them. Only file names are read at that point — no PDF is opened and
-nothing is OCR'd — and adding a course does not loosen the rule: a file still moves
-only when exactly one of your courses is identified in it and no other course code
-appears. Say no and those files simply stay put.
+whether to add them. Only file names are read at that point: no PDF is opened and
+nothing inside a file is read. Adding a course does not loosen the rule. A file still
+moves only when exactly one of your courses is found in it and no other course code
+appears. Say no and those files stay where they are.
 
 ## Second and later runs
 
-Runs after the first one do less work automatically — there is no option to turn
-on and no step to perform:
+After the first run, later runs do less work on their own. There is no option to
+turn on and no step to perform:
 
 - When the target folder is the source folder (or sits inside it), folders that
   name exactly one of your courses are treated as already sorted and are not
   walked again. A folder that names two courses is still scanned.
 - Files the app already checked and left in place are remembered, so they are
-  not reopened and their pages are not OCR'd again. They still appear in the plan
+  not reopened and their pages are not read again. They still appear in the plan
   and in the final "left untouched" list, exactly as before.
 - A file is rechecked when its size, last-write time, the course list, or the app
   build changes. New PDFs are always checked.
@@ -169,12 +169,12 @@ on and no step to perform:
 The memory lives outside your folders, at
 `%LocalAppData%\SchoolPdfSorter\checked-files.json`. It is written before the plan
 is shown, so cancelling a plan still saves the work. Deleting that file is safe:
-the next run simply checks everything again.
+the next run checks everything again.
 
 ## Updates
 
 The app is offline-first: it never needs the network, and a check is attempted at most
-once a day. Offline, a 404, or a malformed feed simply means "no update" — nothing is
+once a day. Offline, a 404, or a malformed feed means "no update". Nothing is
 blocked or reported as an error.
 
 - `/update` checks now and offers the release as a normal chat message.
@@ -184,7 +184,7 @@ blocked or reported as an error.
 - `/rollback` puts that previous build back and restarts.
 - **Skip this version** remembers the choice; `/update` still installs it on request.
 
-The feed is a static file — `latest.json` at the repository root — so hosting costs
+The feed is one static file (`latest.json` at the repository root), so hosting costs
 nothing and a lookup is one small HTTPS request:
 
 ```json
@@ -192,7 +192,7 @@ nothing and a lookup is one small HTTPS request:
   "version": "1.1.0",
   "url": "https://github.com/Tayo-Aina/SchoolPdfSorter/releases/download/v1.1.0/SchoolPdfSorterApp.exe",
   "size": 116654590,
-  "sha256": "…",
+  "sha256": "...",
   "notes": "Course-structure import"
 }
 ```
@@ -262,7 +262,7 @@ every extracted code was usable by the matcher.
 - The rule is intentionally strict. A normal course handout that merely mentions
   another course code in its first five pages will also stay put. That is the
   tradeoff for never filing a timetable or multi-course pack under one course.
-- A `looks like …` note is only a hint. It uses conservative word matching and
+- A `looks like ...` note is only a hint. It uses conservative word matching and
   OCR-confusion fixes in codes; it never moves or renames a file.
 - Course folders are named exactly as the courses are typed.
 - A folder directly under the target that names exactly one course is assumed to

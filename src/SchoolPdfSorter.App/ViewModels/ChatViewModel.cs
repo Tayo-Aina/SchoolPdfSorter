@@ -13,7 +13,7 @@ namespace SchoolPdfSorter.ViewModels;
 public sealed class ChatViewModel : INotifyPropertyChanged
 {
     private string _inputText = "";
-    private string _stepLabel = "Starting…";
+    private string _stepLabel = "Starting...";
     private string _statusText = "";
     private string _progressText = "";
     private double _progressValue;
@@ -71,7 +71,7 @@ public sealed class ChatViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>True while a run is in progress — lights up the persistent cancel button.</summary>
+    /// <summary>True while a run is in progress, lights up the persistent cancel button.</summary>
     public bool CancelEnabled
     {
         get => _cancelEnabled;
@@ -108,7 +108,7 @@ public sealed class ChatViewModel : INotifyPropertyChanged
         set => Set(ref _progressText, value);
     }
 
-    /// <summary>0 – 100.</summary>
+    /// <summary>0 - 100.</summary>
     public double ProgressValue
     {
         get => _progressValue;

@@ -23,7 +23,7 @@ public sealed record SupportData(IReadOnlyList<SupportBank> Banks, string? RepoU
 /// patching the distributed executable, which is the realistic threat.
 ///
 /// The release build injects the real payload + seal here; the in-repo values are
-/// empty, which fails closed — the section stays hidden ("not available in this
+/// empty, which fails closed, the section stays hidden ("not available in this
 /// copy") until a payload is injected.
 /// </summary>
 public static class SupportInfo

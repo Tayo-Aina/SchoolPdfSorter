@@ -1,4 +1,4 @@
-﻿<Window x:Class="SchoolPdfSorter.MainWindow"
+<Window x:Class="SchoolPdfSorter.MainWindow"
         x:ClassModifier="public"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -264,7 +264,7 @@
                     </Border>
 
                     <Button Grid.Column="1"
-                            Content="Browse…"
+                            Content="Browse..."
                             Command="{Binding BrowseCommand}"
                             Style="{StaticResource GhostButton}"
                             Margin="10,0,0,0" />
@@ -288,7 +288,7 @@
                 <TextBlock Margin="2,8,0,0"
                            FontSize="11.5"
                            Foreground="{StaticResource MutedBrush}"
-                           Text="Enter sends  ·  Shift+Enter adds a line  ·  drop a folder or a course-structure file anywhere" />
+                           Text="Enter sends  |  Shift+Enter adds a line  |  drop a folder or a course-structure file anywhere" />
             </StackPanel>
         </Border>
     </Grid>

@@ -1,4 +1,4 @@
-﻿using System.Collections.Specialized;
+using System.Collections.Specialized;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -177,7 +177,7 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Ctrl+V with a file copied in Explorer: the clipboard holds a file list, which a TextBox
-    /// silently ignores. Treat it as drag-and-drop — the folder at step 1/3, the course-structure
+    /// silently ignores. Treat it as drag-and-drop, the folder at step 1/3, the course-structure
     /// file at step 2.
     /// </summary>
     private void OnInputPreviewKeyDown(object sender, KeyEventArgs e)

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json;
 using SchoolPdfSorter.Engine;
 
@@ -100,7 +100,7 @@ foreach (var item in run.Items.OrderBy(i => i.File.FileName, StringComparer.Ordi
             wrongMoves++;
         }
 
-        got = $"→ {item.Course}";
+        got = $"-> {item.Course}";
     }
     else
     {
@@ -126,7 +126,7 @@ foreach (var item in run.Items.OrderBy(i => i.File.FileName, StringComparer.Ordi
     Console.WriteLine($"{"",12} {"",9} {Trunc(item.Reason + extra, 130)} [{item.Tier}, {item.OcrPages} pg]");
 }
 
-static string Trunc(string s, int n) => s.Length <= n ? s : s[..(n - 1)] + "…";
+static string Trunc(string s, int n) => s.Length <= n ? s : s[..(n - 1)] + "...";
 
 var tiers = run.Items.GroupBy(i => i.Tier)
     .OrderBy(g => g.Key, StringComparer.Ordinal)

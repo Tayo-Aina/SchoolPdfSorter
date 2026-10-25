@@ -309,7 +309,7 @@ public sealed class CourseStructureTests
         Assert.Equal(new[] { "eie311", "eie322" }, courses.Select(c => c.Code).ToArray());
 
         // The title sits in front of the code, in the home-program column's usual place, so it
-        // is not guessed at: the folder name is simply the code.
+        // is not guessed at: the folder name is only the code.
         Assert.Equal("EIE 311", courses[0].Label);
     }
 
@@ -320,7 +320,7 @@ public sealed class CourseStructureTests
             Course structure for 100 Level In Alpha Semester
             1. EIE311 Electromagnetic Fields & Waves
             2) EIE312 Communication Principles
-            • EIE313 Physical Electronics
+            * EIE313 Physical Electronics
             - EIE314 Electric Circuit Theory
             """;
 

@@ -56,7 +56,7 @@ public static class CourseStructureDocument
 
         // A scanned structure: read every page with the offline OCR. Its markdown keeps the
         // table rows, which is what lets the parser tell a code from its department column.
-        progress?.Invoke("Loading the built-in OCR models…");
+        progress?.Invoke("Getting the text reader ready");
 
         using var ocr = new NanoOCR(new NanoOcrOptions
         {
@@ -76,7 +76,7 @@ public static class CourseStructureDocument
                 text = string.Join("\n", page.RecTexts);
 
             sb.AppendLine(text);
-            progress?.Invoke($"Read page {page.PageIndex + 1}");
+            progress?.Invoke($"Page {page.PageIndex + 1}");
         }
 
         return sb.ToString();

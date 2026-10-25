@@ -266,8 +266,8 @@ public sealed class Sorter
         {
             if (evidence.HasMultiMarker)
                 return Dump(file,
-                    "multi-course document (past questions, timetable, merged pack, ...); " +
-                    "the PDF could not be read, so it was left alone",
+                    "looks like a timetable, past questions or a combined pack, " +
+                    "and the PDF could not be opened. Left alone.",
                     "multi");
 
             var unopenedConflict = Conflict(file, evidence, 0, 0);
@@ -283,20 +283,20 @@ public sealed class Sorter
                 // inside that folder, so never move an unreadable file on the folder alone.
                 if (evidence.ListedTier[only.Code] == "folder")
                     return Dump(file,
-                        $"the folder name has a course code, but the PDF could not be read to verify it; " +
-                        "left alone", "none");
+                        $"the folder name has a course code, but the PDF could not be read to verify it. " +
+                        "Left alone.", "none");
 
                 return MoveFromEvidence(file, evidence, 0, 0);
             }
 
-            return Dump(file, "the PDF could not be read", "none");
+            return Dump(file, "the PDF could not be opened", "none");
         }
 
-        AddEvidence(evidence, file.MetadataTitle, "the PDF title", "title");
-        AddEvidence(evidence, file.BiggestLine, "the page header", "header");
+        AddEvidence(evidence, file.MetadataTitle, "the title", "title");
+        AddEvidence(evidence, file.BiggestLine, "the heading", "header");
 
         for (int p = 0; p < file.FirstPages.Count; p++)
-            AddEvidence(evidence, file.FirstPages[p], $"page {p + 1}'s text layer", "text");
+            AddEvidence(evidence, file.FirstPages[p], $"page {p + 1}", "text");
 
         if (evidence.HasTimetable)
             return Dump(file, TimetableReason(evidence), "timetable");
@@ -317,10 +317,10 @@ public sealed class Sorter
             => _opt.SuggestNearMatches ? suggestion ??= CourseSuggester.Suggest(file, _codes) : null;
 
         if (file.PageCount <= 0)
-            return Dump(file, "the PDF could not be read", "none", suggestion: GetSuggestion());
+            return Dump(file, "the PDF could not be opened", "none", suggestion: GetSuggestion());
 
         if (_codes.Count == 0)
-            return Dump(file, "the course list has no usable course codes", "none");
+            return Dump(file, "your course list has no course codes", "none");
 
         int scanPages = Math.Min(Math.Max(1, _opt.MaxOcrPages), file.PageCount);
 
@@ -350,7 +350,7 @@ public sealed class Sorter
                 pagesRead = page.PageIndex + 1;
                 progress?.Invoke(new SorterProgress(filesDone, total, "ocr", file.FileName, pagesRead, scanPages));
 
-                AddEvidence(evidence, page.Text, $"page {pagesRead} (OCR)", "ocr");
+                AddEvidence(evidence, page.Text, $"scanned page {pagesRead}", "ocr");
 
                 if (evidence.HasTimetable)
                     return Dump(file, TimetableReason(evidence), "timetable",
@@ -367,7 +367,7 @@ public sealed class Sorter
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return Dump(file, $"OCR could not read the PDF: {ex.Message}",
+            return Dump(file, $"the scanned pages could not be read",
                 "ocr", pagesRead, Stopwatch.GetElapsedTime(ocrStart).TotalSeconds,
                 GetSuggestion());
         }
@@ -377,7 +377,7 @@ public sealed class Sorter
                 Stopwatch.GetElapsedTime(ocrStart).TotalSeconds);
 
         return Dump(file,
-            $"no course code in the file name, title, text layer, or first {scanPages} page(s)",
+            $"no course code in the file name, the title or the first {scanPages} pages",
             "ocr", pagesRead, Stopwatch.GetElapsedTime(ocrStart).TotalSeconds,
             GetSuggestion());
     }
@@ -423,20 +423,20 @@ public sealed class Sorter
 
         if (evidence.Listed.Count > 1)
             return Dump(file,
-                $"several course codes: {DescribeListed(evidence)}; left alone",
+                $"more than one course code ({DescribeListed(evidence)}). Left alone.",
                 "multi", ocrPages, ocrSeconds);
 
         if (evidence.Listed.Count == 1 && evidence.Foreign.Count > 0)
             return Dump(file,
-                $"multi-course document: {DescribeListed(evidence)} plus other course codes " +
-                $"{DescribeForeign(evidence)}; left alone",
+                $"covers more than one course ({DescribeListed(evidence)} and {DescribeForeign(evidence)}). " +
+                "Left alone.",
                 "multi", ocrPages, ocrSeconds);
 
         if (evidence.Listed.Count == 0 && evidence.Foreign.Count > 0)
         {
-            string skipped = ocrPages == 0 ? ", so OCR was skipped" : "";
+            string skipped = ocrPages == 0 ? " I did not need to look inside." : "";
             return Dump(file,
-                $"different course code(s) {DescribeForeign(evidence)}; not on the course list{skipped}",
+                $"a course code that is not on your list ({DescribeForeign(evidence)}).{skipped} Left alone.",
                 ocrPages == 0 ? "unlisted" : "ocr", ocrPages, ocrSeconds);
         }
 
@@ -465,8 +465,8 @@ public sealed class Sorter
     }
 
     private static string TimetableReason(Evidence evidence)
-        => $"timetable/schedule found in {evidence.TimetableWhere}; " +
-           "left alone because a timetable lists several courses";
+        => $"looks like a timetable or schedule ({evidence.TimetableWhere}). " +
+           "Left alone because it covers several courses.";
 
     private static string DescribeListed(Evidence evidence, int max = 6)
     {

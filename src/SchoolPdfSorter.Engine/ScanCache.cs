@@ -61,7 +61,7 @@ public sealed class ScanCache
         }
         catch
         {
-            // A damaged or unreadable cache is simply ignored.
+            // A damaged or unreadable cache is ignored.
         }
 
         return new ScanCache(path, new CacheFile());
