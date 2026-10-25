@@ -405,14 +405,16 @@ public sealed class ChatSession
 
         _ = Task.Run(async () =>
         {
-            var check = await UpdateFeed.CheckAsync(feed, UpdateFeed.CurrentVersion());
+            var outcome = await UpdateFeed.CheckAsync(feed, UpdateFeed.CurrentVersion());
 
             settings = UpdateFeed.LoadSettings();
             settings.LastCheckUtc = now;
             UpdateFeed.SaveSettings(settings);
 
-            if (check is null ||
-                string.Equals(settings.SkippedVersion, check.Manifest.Version,
+            if (outcome.Status != UpdateStatus.Available || outcome.Check is not { } check)
+                return;
+
+            if (string.Equals(settings.SkippedVersion, check.Manifest.Version,
                     StringComparison.OrdinalIgnoreCase))
                 return;
 
@@ -448,9 +450,11 @@ public sealed class ChatSession
 
             _vm.SetProgress(0, "Checking for updates…", "");
 
+            UpdateOutcome outcome;
+
             try
             {
-                check = await UpdateFeed.CheckAsync(feed, UpdateFeed.CurrentVersion());
+                outcome = await UpdateFeed.CheckAsync(feed, UpdateFeed.CurrentVersion());
             }
             finally
             {
@@ -461,13 +465,27 @@ public sealed class ChatSession
             settings.LastCheckUtc = DateTimeOffset.UtcNow;
             UpdateFeed.SaveSettings(settings);
 
-            if (check is null)
+            switch (outcome.Status)
             {
-                _vm.Add($"You're on the newest version ({UpdateFeed.CurrentVersion().ToString(3)}).",
-                    ChatRole.Success);
-                return;
+                case UpdateStatus.Unreachable:
+                    _vm.Add(
+                        "I couldn't reach the update server — you may be offline, or a firewall or proxy " +
+                        "is blocking GitHub. The app works normally; try /update again another time.",
+                        ChatRole.Warning);
+                    return;
+
+                case UpdateStatus.InvalidFeed:
+                    _vm.Add("The update feed answered with something I couldn't read, so I'm ignoring it.",
+                        ChatRole.Warning);
+                    return;
+
+                case UpdateStatus.NoUpdate:
+                    _vm.Add($"You're on the newest version ({UpdateFeed.CurrentVersion().ToString(3)}).",
+                        ChatRole.Success);
+                    return;
             }
 
+            check = outcome.Check!;
             _pendingUpdate = check;
         }
 

@@ -143,6 +143,78 @@ public sealed class UpdateTests
             new UpdateSettings(), "http://example.com/latest.json", now));
     }
 
+    // ============================================================ feed lookups
+
+    [Fact]
+    public void Check_reports_an_available_release()
+    {
+        using var server = new TestServer("/latest.json",
+            Encoding.UTF8.GetBytes(Manifest(version: "2.0.0")));
+
+        var outcome = UpdateFeed.CheckAsync(server.Url("/latest.json"), Version.Parse("1.0.0"))
+            .GetAwaiter().GetResult();
+
+        Assert.Equal(UpdateStatus.Available, outcome.Status);
+        Assert.Equal("2.0.0", outcome.Check!.Manifest.Version);
+    }
+
+    [Theory]
+    [InlineData("1.0.0")]
+    [InlineData("0.9.0")]
+    public void Check_reports_no_update_for_an_older_or_equal_feed(string version)
+    {
+        using var server = new TestServer("/latest.json",
+            Encoding.UTF8.GetBytes(Manifest(version: version)));
+
+        var outcome = UpdateFeed.CheckAsync(server.Url("/latest.json"), Version.Parse("1.0.0"))
+            .GetAwaiter().GetResult();
+
+        Assert.Equal(UpdateStatus.NoUpdate, outcome.Status);
+        Assert.Null(outcome.Check);
+    }
+
+    [Fact]
+    public void Check_treats_a_missing_feed_as_no_update()
+    {
+        using var server = new TestServer("/latest.json", Encoding.UTF8.GetBytes(Manifest()));
+
+        var outcome = UpdateFeed.CheckAsync(server.Url("/not-published.json"), Version.Parse("1.0.0"))
+            .GetAwaiter().GetResult();
+
+        Assert.Equal(UpdateStatus.NoUpdate, outcome.Status);
+    }
+
+    [Fact]
+    public void Check_reports_an_unreachable_server()
+    {
+        var outcome = UpdateFeed.CheckAsync(
+                $"http://127.0.0.1:{FreePort()}/latest.json", Version.Parse("1.0.0"))
+            .GetAwaiter().GetResult();
+
+        Assert.Equal(UpdateStatus.Unreachable, outcome.Status);
+        Assert.Null(outcome.Check);
+    }
+
+    [Fact]
+    public void Check_reports_a_feed_that_is_not_json()
+    {
+        using var server = new TestServer("/latest.json", Encoding.UTF8.GetBytes("not a manifest"));
+
+        var outcome = UpdateFeed.CheckAsync(server.Url("/latest.json"), Version.Parse("1.0.0"))
+            .GetAwaiter().GetResult();
+
+        Assert.Equal(UpdateStatus.InvalidFeed, outcome.Status);
+    }
+
+    [Fact]
+    public void Check_reports_a_disabled_feed()
+    {
+        var outcome = UpdateFeed.CheckAsync("", Version.Parse("1.0.0"))
+            .GetAwaiter().GetResult();
+
+        Assert.Equal(UpdateStatus.InvalidFeed, outcome.Status);
+    }
+
     [Fact]
     public void Download_verifies_and_stages_a_release()
     {
@@ -376,6 +448,16 @@ public sealed class UpdateTests
         var path = Path.Combine(Path.GetTempPath(), "SchoolPdfSorterUpdateTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(path);
         return path;
+    }
+
+    /// <summary>A port nothing is listening on, for the "server unreachable" case.</summary>
+    private static int FreePort()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
     }
 
     private sealed class RecordingProgress : IProgress<double>

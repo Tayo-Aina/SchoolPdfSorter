@@ -24,6 +24,25 @@ public sealed record UpdateCheck(UpdateManifest Manifest, Version Version)
         : $"{Manifest.Size / (1024.0 * 1024):0} MB";
 }
 
+/// <summary>How a feed lookup ended, so "offline" is never reported as "up to date".</summary>
+public enum UpdateStatus
+{
+    /// <summary>The feed was read and names nothing newer.</summary>
+    NoUpdate,
+
+    /// <summary>The feed was read and names a newer build.</summary>
+    Available,
+
+    /// <summary>The feed could not be fetched: offline, DNS, TLS, firewall or proxy.</summary>
+    Unreachable,
+
+    /// <summary>The feed answered, but the document is not a valid manifest.</summary>
+    InvalidFeed
+}
+
+/// <summary>The result of one lookup.</summary>
+public sealed record UpdateOutcome(UpdateStatus Status, UpdateCheck? Check);
+
 /// <summary>What the updater remembers between runs (LocalAppData, never next to the user's files).</summary>
 public sealed class UpdateSettings
 {
@@ -105,7 +124,8 @@ public static class UpdateFeed
         return Normalize(assembly.GetName().Version ?? new Version(1, 0, 0, 0));
     }
 
-    public static bool IsNewer(Version candidate, Version current) => candidate > current;
+    public static bool IsNewer(Version candidate, Version current)
+        => Normalize(candidate) > Normalize(current);
 
     // =================================================================== feed
 
@@ -166,42 +186,49 @@ public static class UpdateFeed
     }
 
     /// <summary>
-    /// Fetches the manifest and returns it only when it is a newer release the user has not
-    /// skipped. Any failure — offline, DNS, timeout, a bad document — returns null.
+    /// Fetches the manifest and says whether there is a newer release, none, or no answer at
+    /// all. A 404 means the project has not published a feed yet and counts as "no update";
+    /// every other failure is reported as unreachable so the chat can say so honestly.
     /// </summary>
-    public static async Task<UpdateCheck?> CheckAsync(
+    public static async Task<UpdateOutcome> CheckAsync(
         string feedUrl, Version current, HttpClient? client = null, CancellationToken ct = default)
     {
         if (!IsConfigured(feedUrl))
-            return null;
+            return new UpdateOutcome(UpdateStatus.InvalidFeed, null);
+
+        string json;
 
         try
         {
             using var http = client ?? CreateClient();
 
             using var response = await http.GetAsync(feedUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return new UpdateOutcome(UpdateStatus.NoUpdate, null);
+
             response.EnsureSuccessStatusCode();
-
-            var json = await response.Content.ReadAsStringAsync(ct);
-            var manifest = ParseManifest(json);
-
-            if (manifest is null || ParseVersion(manifest.Version) is not { } version)
-                return null;
-
-            if (!IsNewer(version, current))
-                return null;
-
-            // A build too old for the feed cannot be updated safely in place.
-            if (ParseVersion(manifest.MinVersion) is { } minimum && IsNewer(minimum, current))
-                return null;
-
-            return new UpdateCheck(manifest, version);
+            json = await response.Content.ReadAsStringAsync(ct);
         }
         catch (Exception)
         {
-            // Offline is the normal case. Updates are a convenience, never a requirement.
-            return null;
+            // Offline is the normal case for this app; it is not an error.
+            return new UpdateOutcome(UpdateStatus.Unreachable, null);
         }
+
+        var manifest = ParseManifest(json);
+
+        if (manifest is null || ParseVersion(manifest.Version) is not { } version)
+            return new UpdateOutcome(UpdateStatus.InvalidFeed, null);
+
+        if (!IsNewer(version, current))
+            return new UpdateOutcome(UpdateStatus.NoUpdate, null);
+
+        // A build too old for the feed cannot be updated safely in place.
+        if (ParseVersion(manifest.MinVersion) is { } minimum && IsNewer(minimum, current))
+            return new UpdateOutcome(UpdateStatus.NoUpdate, null);
+
+        return new UpdateOutcome(UpdateStatus.Available, new UpdateCheck(manifest, version));
     }
 
     // ================================================================ download
