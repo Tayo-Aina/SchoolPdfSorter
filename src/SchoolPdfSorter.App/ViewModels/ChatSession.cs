@@ -133,7 +133,7 @@ public sealed class ChatSession
         Sorter sorter;
         while (true)
         {
-            _courses = await AskCoursesAsync(token);
+            _courses = await AskCoursesAsync(sourceDir, token);
             sorter = new Sorter(_courses);
 
             if (sorter.Codes.Count > 0)
@@ -725,7 +725,7 @@ public sealed class ChatSession
 
     // ================================================================ courses
 
-    private async Task<List<string>> AskCoursesAsync(CancellationToken token)
+    private async Task<List<string>> AskCoursesAsync(string sourceDir, CancellationToken token)
     {
         var current =
             "Step 2 of 4: Your course list\n" +
@@ -742,7 +742,7 @@ public sealed class ChatSession
 
             try
             {
-                typed = await AskAsync(current, true);
+                typed = await AskAsync(current, true, ("Auto-fill from file names", "autofill"));
             }
             finally
             {
@@ -750,6 +750,17 @@ public sealed class ChatSession
             }
 
             token.ThrowIfCancellationRequested();
+
+            if (typed == "autofill")
+            {
+                var found = await AutoFillCoursesAsync(sourceDir, token);
+
+                if (found is not null)
+                    return found;
+
+                current = "Enter your course list:";
+                continue;
+            }
 
             var reading = await ReadCoursesAsync(typed, token);
 
@@ -785,6 +796,66 @@ public sealed class ChatSession
 
             current = "Enter your course list:";
         }
+    }
+
+    /// <summary>
+    /// The step 2 shortcut: finds course codes in the names of the source folder's PDFs and
+    /// PowerPoints. Only file names are read, no document is opened. If nothing course-like is
+    /// there, it says so and lets the user type, paste a structure, or use Browse; it never
+    /// guesses or looks inside a file. Returns null when the user wants to enter the list by hand.
+    /// </summary>
+    private async Task<List<string>?> AutoFillCoursesAsync(string sourceDir, CancellationToken token)
+    {
+        _vm.Bot($"Looking at the file names in:\n{sourceDir}\n" +
+                (_vm.IncludeSubfolders ? "including subfolders" : "this folder only (subfolders are off)"));
+
+        List<string> courses;
+
+        try
+        {
+            var scan = await Task.Run(
+                () => PdfScanner.Scan(sourceDir, sourceDir, _vm.IncludeSubfolders,
+                    Array.Empty<string>(), new[] { ".pdf", ".pptx", ".ppsx" }),
+                token);
+
+            token.ThrowIfCancellationRequested();
+
+            courses = CourseDiscovery.FromFileNames(scan.Files.Select(file => file.Path));
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _vm.Add($"I couldn't read the file names in that folder: {ex.Message}", ChatRole.Error);
+            return null;
+        }
+
+        if (courses.Count == 0)
+        {
+            _vm.Add(
+                "I didn't find any course codes in the names of those files. I won't guess. " +
+                "You can type your courses, paste your course structure, or use Browse... to pick " +
+                "a PDF or text file that has it.",
+                ChatRole.Warning);
+            return null;
+        }
+
+        _vm.Add(BuildCourseListMessage(courses), ChatRole.System);
+
+        _vm.Add(
+            "I found these codes in your file names. The full course titles are not in the " +
+            "file names, so folders will be named by code only, for example \"EIE 326\".",
+            ChatRole.System);
+
+        var confirm = await AskAsync(
+            "Use these courses?",
+            false,
+            (courses.Count == 1 ? "Yes, use this course" : $"Yes, use these {courses.Count} courses", "ok"),
+            ("Enter them again", "retry"));
+
+        return confirm == "ok" ? courses : null;
     }
 
     /// <summary>
@@ -1416,8 +1487,8 @@ public sealed class ChatSession
             "and papers that cover several courses are always left where they are. If I find no\n" +
             "code, or more than one, the file stays put. Nothing is ever renamed.\n" +
             "\n" +
-            "At step 2 you can paste a whole course structure, or drop in the file that holds\n" +
-            "one (.pdf, .txt, .md, .csv, .rtf).\n" +
+            "At step 2 you can press Auto-fill from file names, paste a whole course\n" +
+            "structure, or drop in the file that holds one (.pdf, .txt, .md, .csv, .rtf).\n" +
             "\n" +
             "At step 3 choose PDFs, PowerPoints (.pptx/.ppsx) or both. Older .ppt files are not\n" +
             "read. PowerPoints take longer, and a PowerPoint file made only of pictures has no\n" +
@@ -1496,8 +1567,8 @@ public sealed class ChatSession
         "    Nothing is ever renamed.\n" +
         "\n" +
         "Four quick questions, then I show you the plan. Nothing moves until you approve it.\n" +
-        "You can type your courses, or give me your whole course structure: paste it, or drop\n" +
-        "the PDF in. Type /help for commands.";
+        "You can type your courses, auto-fill from file names, or give me your whole course\n" +
+        "structure: paste it, or drop the PDF in. Type /help for commands.";
 
     private static string BuildPlanSummary(SorterRunResult result, string targetDir)
     {

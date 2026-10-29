@@ -71,7 +71,7 @@ accept `.pdfx` for `*.pdf`.
 four steps:
 
 1. source folder
-2. course list
+2. course list (typed, imported, or auto-filled from the course codes in file names)
 3. what to look through: PDFs only / PowerPoints only / both
 4. target folder
 
@@ -79,6 +79,11 @@ Step 3 also posts a warning when PowerPoints are included (slower, picture-only
 PowerPoint files cannot be read, `.ppt` is not supported). If a step is added or reordered,
 renumber every label, the help text and the greeting, and update README "Using the
 app". The wording is for students: keep it plain and avoid technical jargon.
+
+Step 2's auto-fill button reads only file names, never contents, and deliberately
+offers code-only labels (`EIE 326`) because titles are not reliably present. If it
+finds nothing, it says so rather than guessing; do not silently fall back to reading
+files during that step.
 
 The scanner is only given the extensions chosen in step 3. `ChatSession` also passes
 those extensions to `ScanCache.Remember`, which keeps cached decisions for the other
