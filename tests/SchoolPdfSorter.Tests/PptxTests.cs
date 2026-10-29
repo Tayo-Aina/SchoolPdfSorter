@@ -136,6 +136,32 @@ public sealed class PptxTests
         }
     }
 
+    [Fact]
+    public void Sorter_leaves_picture_only_decks_that_cannot_be_verified_alone()
+    {
+        var root = NewDirectory();
+
+        try
+        {
+            var folderDeck = PptxFixture.Create(
+                Path.Combine(root, "EIE 326 Data Structures"), "week 3 slides.pptx", "Week 3", "", "");
+
+            var combinedDeck = PptxFixture.Create(
+                root, "EIE 326 combined slides.pptx", "Week 3", "", "");
+
+            var result = new Sorter(Courses).Run(new[] { folderDeck, combinedDeck });
+
+            Assert.Equal(2, result.Items.Count);
+            Assert.All(result.Items, item => Assert.False(item.IsMove));
+            Assert.Contains("no text to verify", result.Items.Single(i => i.File.Path == folderDeck).Reason);
+            Assert.Contains("no text to check", result.Items.Single(i => i.File.Path == combinedDeck).Reason);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     // ================================================================ scanner
 
     [Fact]

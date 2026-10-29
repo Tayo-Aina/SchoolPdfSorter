@@ -317,6 +317,24 @@ public sealed class Sorter
         if (cheapConflict is not null)
             return cheapConflict;
 
+        // A PowerPoint file with no slide text cannot be verified. If its only code is
+        // the folder name, or its name says it may cover several courses, leave it alone;
+        // there is no OCR fallback to check the pictures.
+        if (file.IsPresentation && !file.HasAnyText && evidence.Listed.Count == 1)
+        {
+            var only = evidence.Listed.Values.First();
+
+            if (evidence.ListedTier[only.Code] == "folder")
+                return Dump(file,
+                    "the folder name has a course code, but the PowerPoint file has no text to " +
+                    "verify it. Left alone.", "slides");
+
+            if (evidence.HasMultiMarker)
+                return Dump(file,
+                    "the name says it may cover more than one course, and the PowerPoint file has " +
+                    "no text to check. Left alone.", "multi");
+        }
+
         // A multi-course-looking file with one code and no text layer (or with blank
         // pages in the text layer) may still hide other courses in the scans. A PowerPoint
         // file has no OCR fallback, so its slides are all the evidence there is.
