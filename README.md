@@ -113,9 +113,9 @@ and not a rename.
    spreadsheet or the printed structure), or drop in the file that holds it. I read
    the course codes out of it. See [Course structure](#course-structure) below.
 
-   You can also press **Auto-fill from file names**. It reads the course codes in
-   the names of the files in your source folder and builds the list for you, so you
-   do not have to type anything. Folders are then named by code only (`EIE 326`),
+   You can also press **Find my courses from the file names**. It reads the course
+   codes in the names of the files in your source folder and builds the list for you,
+   so you do not have to type anything. Folders are then named by code only (`EIE 326`),
    because the full course title is not reliably in a file name. If your file names
    have no course codes, it says so instead of guessing; type the list or import
    your course structure.
@@ -343,9 +343,9 @@ every extracted code was usable by the matcher.
 - The rule is intentionally strict. A normal course handout that merely mentions
   another course code in its first five pages or slides will also stay put. That is
   the tradeoff for never filing a timetable or multi-course pack under one course.
-- **Auto-fill from file names** only reads file names. A course with no code in any
-  file name will not be in the automatic list; those files stay where they are
-  unless you add the course yourself or import your course structure.
+- **Find my courses from the file names** only reads file names. A course with no
+  code in any file name will not be in the automatic list; those files stay where
+  they are unless you add the course yourself or import your course structure.
 - A `looks like ...` note is only a hint. It uses conservative word matching and
   OCR-confusion fixes in codes; it never moves or renames a file.
 - Course folders are named exactly as the courses are typed.

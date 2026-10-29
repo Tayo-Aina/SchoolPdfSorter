@@ -120,7 +120,7 @@ public sealed class ChatSession
             : Array.Empty<(string Label, string Value)>();
 
         var sourceDir = await AskDirectoryAsync(
-            "Step 1 of 4: Where are your school files?\nPaste the folder that has your PDFs or PowerPoints, or pick one below.",
+            "Step 1 of 4: Where are your school files?\nPaste the folder path below, or use the Browse button at the bottom of the window to pick the folder.",
             "Enter a folder that exists. You can also paste the path of a file inside it:",
             mustExist: true,
             step1Options);
@@ -730,6 +730,7 @@ public sealed class ChatSession
         var current =
             "Step 2 of 4: Your course list\n" +
             "Paste or type your courses, one per line, or separated by semicolons.\n" +
+            "If you don't want to type, press Find my courses from the file names.\n" +
             "Or paste your whole course structure, or use Browse... to pick a PDF or text file\n" +
             "that has it. I will read the courses from it. You can also drop the file on the window.\n" +
             "Example: ECON 301 Microeconomics; GST 102 Communication in English";
@@ -742,7 +743,7 @@ public sealed class ChatSession
 
             try
             {
-                typed = await AskAsync(current, true, ("Auto-fill from file names", "autofill"));
+                typed = await AskAsync(current, true, ("Find my courses from the file names", "autofill"));
             }
             finally
             {
@@ -806,7 +807,7 @@ public sealed class ChatSession
     /// </summary>
     private async Task<List<string>?> AutoFillCoursesAsync(string sourceDir, CancellationToken token)
     {
-        _vm.Bot($"Looking at the file names in:\n{sourceDir}\n" +
+        _vm.Bot($"Looking for course codes in the file names in:\n{sourceDir}\n" +
                 (_vm.IncludeSubfolders ? "including subfolders" : "this folder only (subfolders are off)"));
 
         List<string> courses;
@@ -845,7 +846,7 @@ public sealed class ChatSession
         _vm.Add(BuildCourseListMessage(courses), ChatRole.System);
 
         _vm.Add(
-            "I found these codes in your file names. The full course titles are not in the " +
+            "I found these course codes in your file names. The full course titles are not in the " +
             "file names, so folders will be named by code only, for example \"EIE 326\".",
             ChatRole.System);
 
@@ -1487,8 +1488,8 @@ public sealed class ChatSession
             "and papers that cover several courses are always left where they are. If I find no\n" +
             "code, or more than one, the file stays put. Nothing is ever renamed.\n" +
             "\n" +
-            "At step 2 you can press Auto-fill from file names, paste a whole course\n" +
-            "structure, or drop in the file that holds one (.pdf, .txt, .md, .csv, .rtf).\n" +
+            "At step 2 you can press Find my courses from the file names, paste a whole\n" +
+            "course structure, or drop in the file that holds one (.pdf, .txt, .md, .csv, .rtf).\n" +
             "\n" +
             "At step 3 choose PDFs, PowerPoints (.pptx/.ppsx) or both. Older .ppt files are not\n" +
             "read. PowerPoints take longer, and a PowerPoint file made only of pictures has no\n" +
@@ -1567,8 +1568,8 @@ public sealed class ChatSession
         "    Nothing is ever renamed.\n" +
         "\n" +
         "Four quick questions, then I show you the plan. Nothing moves until you approve it.\n" +
-        "You can type your courses, auto-fill from file names, or give me your whole course\n" +
-        "structure: paste it, or drop the PDF in. Type /help for commands.";
+        "You can type your courses, find them from your file names, or give me your whole\n" +
+        "course structure: paste it, or drop the PDF in. Type /help for commands.";
 
     private static string BuildPlanSummary(SorterRunResult result, string targetDir)
     {
