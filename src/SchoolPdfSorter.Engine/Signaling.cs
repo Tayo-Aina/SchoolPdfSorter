@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace SchoolPdfSorter.Engine;
 
-/// <summary>Everything cheap we can read from a PDF without OCR.</summary>
+/// <summary>Everything cheap we can read from a document without OCR.</summary>
 public sealed record FileSignals(
     string Path,
     string FileName,
@@ -18,6 +18,9 @@ public sealed record FileSignals(
     public string FirstPagesText => string.Join("\n", FirstPages);
 
     public bool HasAnyText => FirstPages.Any(p => p.Length >= 40);
+
+    /// <summary>True for .pptx/.ppsx, where pages are slides and there is no OCR fallback.</summary>
+    public bool IsPresentation => PptxText.IsPresentation(Path);
 }
 
 public static class Signals
@@ -32,6 +35,25 @@ public static class Signals
 
     public static FileSignals Extract(string path)
     {
+        var fileName = Path.GetFileName(path);
+        var parent = Path.GetFileName(Path.GetDirectoryName(path) ?? "") ?? "";
+
+        if (PptxText.IsPresentation(path))
+        {
+            PptxTextInfo slides;
+            try
+            {
+                slides = PptxText.Extract(path);
+            }
+            catch
+            {
+                slides = new PptxTextInfo(0, Array.Empty<string>(), "", "");
+            }
+
+            return new FileSignals(path, fileName, parent, slides.MetadataTitle, slides.SlideCount,
+                slides.FirstLine, 0, slides.SlideTexts, slides.TextChars >= 40);
+        }
+
         PdfTextInfo text;
         try
         {
@@ -41,9 +63,6 @@ public static class Signals
         {
             text = new PdfTextInfo(0, Array.Empty<string>(), "", 0, "");
         }
-
-        var fileName = Path.GetFileName(path);
-        var parent = Path.GetFileName(Path.GetDirectoryName(path) ?? "") ?? "";
 
         return new FileSignals(path, fileName, parent, text.MetadataTitle, text.PageCount,
             text.BiggestLineText, text.BiggestLinePointSize, text.PageTexts, text.TextChars >= 40);
@@ -223,7 +242,7 @@ public static class CourseCodes
         "lt", "aud", "team", "case", "slip", "pin", "otp", "id", "num", "sn", "tel", "ext",
         "ref", "reg", "eq", "ii", "iii", "iv", "vi", "vii", "viii", "ix", "xi", "xii",
         "xiii", "xiv", "xv", "xvi", "xvii", "xviii", "xix", "xx", "xxi", "xxii", "xxiii",
-        "xxiv", "xxv",
+        "xxiv", "xxv", "step", "steps", "done",
     };
 
     /// <summary>

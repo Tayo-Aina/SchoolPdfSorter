@@ -67,7 +67,7 @@
                               IsChecked="{Binding IncludeSubfolders}"
                               Style="{StaticResource ChipCheck}"
                               VerticalAlignment="Center"
-                              ToolTip="Include PDFs in subfolders too" />
+                              ToolTip="Include PDFs and PowerPoints in subfolders too" />
                 </StackPanel>
 
             </DockPanel>

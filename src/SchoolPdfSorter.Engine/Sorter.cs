@@ -63,7 +63,7 @@ public sealed class StrictOptions
 
     /// <summary>
     /// Stop early when the file already points to another course: a different code in the
-    /// file name is skipped without opening the PDF, and a sibling code in the cheap text
+    /// file name is skipped without opening the file, and a sibling code in the cheap text
     /// (same department prefix, different number) skips OCR.
     /// </summary>
     public bool StopOnUnlistedCode { get; set; } = true;
@@ -79,9 +79,9 @@ public sealed class StrictOptions
 /// Strict course-code filing. A file moves only when exactly one course from the list is
 /// identified, in this order:
 ///   1. its file name / parent folder,
-///   2. the PDF title / largest-font line,
-///   3. the text layer of its first pages,
-///   4. OCR of its first pages (NanoOCR, a pure-C# port of Indra OCR).
+///   2. the document title / largest-font line (or the first slide line),
+///   3. the text layer of its first pages, or the text of its first slides,
+///   4. OCR of its first pages (NanoOCR, a pure-C# port of Indra OCR; PDFs only).
 /// Zero codes, or several different courses in the same place, means it is left untouched.
 /// A different course code in the file name (for example CSC 201 when only EIE 301 is listed)
 /// leaves the file alone without opening it. A sibling code in the cheap text (EIE 315 when
@@ -124,7 +124,7 @@ public sealed class Sorter
         var totalSw = Stopwatch.StartNew();
         int total = paths.Count;
 
-        // ---- pass 0: file/folder names first; open only the PDFs still in play ----
+        // ---- pass 0: file/folder names first; open only the files still in play ----
         var signals = new FileSignals[total];
         var open = new bool[total];
         int toOpen = 0;
@@ -267,7 +267,7 @@ public sealed class Sorter
             if (evidence.HasMultiMarker)
                 return Dump(file,
                     "looks like a timetable, past questions or a combined pack, " +
-                    "and the PDF could not be opened. Left alone.",
+                    "and the file could not be opened. Left alone.",
                     "multi");
 
             var unopenedConflict = Conflict(file, evidence, 0, 0);
@@ -283,20 +283,32 @@ public sealed class Sorter
                 // inside that folder, so never move an unreadable file on the folder alone.
                 if (evidence.ListedTier[only.Code] == "folder")
                     return Dump(file,
-                        $"the folder name has a course code, but the PDF could not be read to verify it. " +
+                        $"the folder name has a course code, but the file could not be read to verify it. " +
                         "Left alone.", "none");
 
                 return MoveFromEvidence(file, evidence, 0, 0);
             }
 
-            return Dump(file, "the PDF could not be opened", "none");
+            return Dump(file, "the file could not be opened", "none");
         }
 
         AddEvidence(evidence, file.MetadataTitle, "the title", "title");
         AddEvidence(evidence, file.BiggestLine, "the heading", "header");
 
         for (int p = 0; p < file.FirstPages.Count; p++)
-            AddEvidence(evidence, file.FirstPages[p], $"page {p + 1}", "text");
+        {
+            var text = file.FirstPages[p];
+
+            // Slide paragraphs are separate lines. Treat a newline as a hard break so a
+            // heading like "WORK DONE" followed by an item number does not become a fake
+            // course code ("DONE 01").
+            if (file.IsPresentation)
+                text = text.Replace('\n', ';');
+
+            AddEvidence(evidence, text,
+                file.IsPresentation ? $"slide {p + 1}" : $"page {p + 1}",
+                file.IsPresentation ? "slide" : "text");
+        }
 
         if (evidence.HasTimetable)
             return Dump(file, TimetableReason(evidence), "timetable");
@@ -306,8 +318,10 @@ public sealed class Sorter
             return cheapConflict;
 
         // A multi-course-looking file with one code and no text layer (or with blank
-        // pages in the text layer) may still hide other courses in the scans.
-        bool mustCheckScans = evidence.Listed.Count == 1 && evidence.HasMultiMarker && NeedsOcr(file);
+        // pages in the text layer) may still hide other courses in the scans. A PowerPoint
+        // file has no OCR fallback, so its slides are all the evidence there is.
+        bool mustCheckScans = evidence.Listed.Count == 1 && evidence.HasMultiMarker
+            && !file.IsPresentation && NeedsOcr(file);
         if (evidence.Listed.Count == 1 && !mustCheckScans)
             return MoveFromEvidence(file, evidence, 0, 0);
 
@@ -317,10 +331,21 @@ public sealed class Sorter
             => _opt.SuggestNearMatches ? suggestion ??= CourseSuggester.Suggest(file, _codes) : null;
 
         if (file.PageCount <= 0)
-            return Dump(file, "the PDF could not be opened", "none", suggestion: GetSuggestion());
+            return Dump(file, "the file could not be opened", "none", suggestion: GetSuggestion());
 
         if (_codes.Count == 0)
             return Dump(file, "your course list has no course codes", "none");
+
+        if (file.IsPresentation)
+        {
+            var slides = Math.Min(Math.Max(1, file.PageCount), PptxText.MaxSlides);
+
+            return Dump(file,
+                file.HasAnyText
+                    ? $"no course code in the file name, the title or the first {slides} slides"
+                    : "the slides are pictures with no text I can read",
+                "slides", 0, 0, GetSuggestion());
+        }
 
         int scanPages = Math.Min(Math.Max(1, _opt.MaxOcrPages), file.PageCount);
 

@@ -7,9 +7,9 @@ using SchoolPdfSorter.Engine;
 namespace SchoolPdfSorter.ViewModels;
 
 /// <summary>
-/// Drives the whole conversation: source folder, course list, target folder, a
-/// strict course-code pass over the PDFs, a plan review, the move, and a compact
-/// list of files left untouched. Every prompt is awaited, so the flow reads
+/// Drives the whole conversation: source folder, course list, what to look through, target
+/// folder, a strict course-code pass over the documents, a plan review, the move, and a
+/// compact list of files left untouched. Every prompt is awaited, so the flow reads
 /// top-to-bottom like the script it is.
 /// </summary>
 public sealed class ChatSession
@@ -32,7 +32,7 @@ public sealed class ChatSession
     private UpdateCheck? _pendingUpdate;
     private bool _updateCheckStarted;
 
-    /// <summary>True while PDFs are being read, OCR'd or moved, never restart an update then.</summary>
+    /// <summary>True while documents are being read, OCR'd or moved, never restart an update then.</summary>
     private bool _busy;
 
     /// <summary>The anonymous usage count is attempted at most once per launch.</summary>
@@ -113,14 +113,14 @@ public sealed class ChatSession
         _vm.Bot(Greeting());
 
         // ------------------------------------------------------------ step 1
-        _vm.StepLabel = "Step 1 of 3: Your PDF folder";
+        _vm.StepLabel = "Step 1 of 4: Your school folder";
 
         (string Label, string Value)[] step1Options = Directory.Exists(DownloadsDirectory)
             ? new[] { ("My Downloads folder", DownloadsDirectory) }
             : Array.Empty<(string Label, string Value)>();
 
         var sourceDir = await AskDirectoryAsync(
-            "Step 1 of 3: Where are your PDFs?\nPaste the folder that has your school PDFs, or pick one below.",
+            "Step 1 of 4: Where are your school files?\nPaste the folder that has your PDFs or PowerPoints, or pick one below.",
             "Enter a folder that exists. You can also paste the path of a file inside it:",
             mustExist: true,
             step1Options);
@@ -128,7 +128,7 @@ public sealed class ChatSession
         _vm.Add($"Source: {sourceDir}", ChatRole.System);
 
         // ------------------------------------------------------------ step 2
-        _vm.StepLabel = "Step 2 of 3: Your course list";
+        _vm.StepLabel = "Step 2 of 4: Your course list";
 
         Sorter sorter;
         while (true)
@@ -140,7 +140,7 @@ public sealed class ChatSession
                 break;
 
             _vm.Add(
-                "No course code found in those courses, so no PDF can be matched. " +
+                "No course code found in those courses, so no file can be matched. " +
                 "Add the code to each course, for example: \"MTH 101 Elementary Mathematics I\".",
                 ChatRole.Error);
         }
@@ -148,50 +148,96 @@ public sealed class ChatSession
         if (sorter.CoursesWithoutCode.Count > 0)
         {
             _vm.Add(
-                "These courses have no code, so PDFs can't be matched to them:\n" +
+                "These courses have no code, so files can't be matched to them:\n" +
                 string.Join("\n", sorter.CoursesWithoutCode.Select(c => "    " + c)) +
                 "\nAdd the code (for example \"MTH 101 ...\") and run again to include them.",
                 ChatRole.Warning);
         }
 
         // ------------------------------------------------------------ step 3
-        _vm.StepLabel = "Step 3 of 3: Where the folders go";
+        _vm.StepLabel = "Step 3 of 4: What to look through";
 
-        var step3Options = new List<(string Label, string Value)>
+        var wanted = await AskAsync(
+            "Step 3 of 4: What should I look through?\n" +
+            "Pick PDFs, PowerPoint slides, or both. PowerPoint files take longer to check than PDFs.",
+            false,
+            ("PDFs only", "pdf"),
+            ("PowerPoint slides only", "pptx"),
+            ("Both PDFs and PowerPoints", "both"));
+
+        string kind;
+        string[] extensions;
+
+        switch (wanted)
+        {
+            case "pptx":
+                kind = "PowerPoint";
+                extensions = new[] { ".pptx", ".ppsx" };
+                break;
+
+            case "both":
+                kind = "PDF and PowerPoint";
+                extensions = new[] { ".pdf", ".pptx", ".ppsx" };
+                break;
+
+            default:
+                kind = "PDF";
+                extensions = new[] { ".pdf" };
+                break;
+        }
+
+        string Counted(int count) => $"{count} {kind} {(count == 1 ? "file" : "files")}";
+
+        _vm.Add($"Looking through: {kind} files.", ChatRole.System);
+
+        if (wanted != "pdf")
+        {
+            _vm.Add(
+                "PowerPoint files take longer than PDFs, because I have to open each PowerPoint " +
+                "file and look through its slides. PowerPoint files made only of pictures can't " +
+                "be read, so they stay where they are. Older .ppt files are not supported, and " +
+                "I will ignore them.",
+                ChatRole.Warning);
+        }
+
+        // ------------------------------------------------------------ step 4
+        _vm.StepLabel = "Step 4 of 4: Where the folders go";
+
+        var step4Options = new List<(string Label, string Value)>
         {
             ("Create inside the source folder", sourceDir)
         };
 
         if (Directory.Exists(DocumentsDirectory))
-            step3Options.Add(("My Documents", DocumentsDirectory));
+            step4Options.Add(("My Documents", DocumentsDirectory));
 
         var targetDir = await AskDirectoryAsync(
-            "Step 3 of 3: Where should the course folders go?\nEach course gets its own folder inside this one.",
+            "Step 4 of 4: Where should the course folders go?\nEach course gets its own folder inside this one.",
             "Enter a folder. The folder above it must already exist:",
             mustExist: false,
-            step3Options.ToArray());
+            step4Options.ToArray());
 
         if (!Directory.Exists(targetDir))
             _vm.Add($"Target folder will be created: {targetDir}", ChatRole.System);
 
         // ----------------------------------------------------------- scanning
-        _vm.StepLabel = "Looking for PDFs";
+        _vm.StepLabel = $"Looking for {kind} files";
         _vm.Bot(
-            $"Looking for PDF files in:\n{sourceDir}\n" +
+            $"Looking for {kind} files in:\n{sourceDir}\n" +
             (_vm.IncludeSubfolders ? "including subfolders" : "this folder only (subfolders are off)"));
 
-        var scan = PdfScanner.Scan(sourceDir, targetDir, _vm.IncludeSubfolders, _courses);
+        var scan = PdfScanner.Scan(sourceDir, targetDir, _vm.IncludeSubfolders, _courses, extensions);
         var files = scan.Files;
 
         if (files.Count == 0)
         {
             if (scan.SortedFolders.Count > 0)
                 _vm.Add(
-                    $"No new PDFs in {sourceDir}. " +
+                    $"No new {kind} files in {sourceDir}. " +
                     $"{scan.SortedFolders.Count} course folders already have their files.",
                     ChatRole.System);
             else
-                _vm.Add($"No PDFs found in {sourceDir}.", ChatRole.Warning);
+                _vm.Add($"No {kind} files found in {sourceDir}.", ChatRole.Warning);
             _vm.Bot("You can point me somewhere else, or start over.");
             var again = await AskAsync("What would you like to do?", false,
                 ("Choose another folder", "restart"),
@@ -205,7 +251,7 @@ public sealed class ChatSession
             return;
         }
 
-        _vm.Add($"Found {files.Count} PDF files.", ChatRole.Success);
+        _vm.Add($"Found {Counted(files.Count)}.", ChatRole.Success);
         token.ThrowIfCancellationRequested();
 
         // The files themselves can name courses the list is missing, a code the structure scan
@@ -224,15 +270,25 @@ public sealed class ChatSession
             .ToList();
 
         var intro = cached.Count == 0
-            ? $"Looking inside {files.Count} PDF files for a course code. This all happens on your computer.\n"
-            : $"Looking inside {fresh.Count} new or changed PDF files for a course code. This all happens on your computer.\n" +
+            ? $"Looking inside {Counted(files.Count)} for a course code. This all happens on your computer.\n"
+            : $"Looking inside {Counted(fresh.Count)} for a course code. This all happens on your computer.\n" +
               $"{cached.Count} files have not changed since last time, so I'll skip them.\n";
+
+        var readingRule = wanted switch
+        {
+            "pptx" => "Otherwise I read the title and the first 5 slides. Picture-only slides have " +
+                      "no text, so a PowerPoint file like that stays where it is. ",
+            "both" => "Otherwise I read the title, the first 5 pages of a PDF (including scanned " +
+                      "pages) or the first 5 slides of a PowerPoint file. ",
+            _ => "Otherwise I read the title and the first 5 pages, including scanned pages. "
+        };
 
         _vm.Bot(
             intro +
             "I check the file name and folder first. If they name a different course, the file is " +
-            "left alone without opening it. Otherwise I read the title and the first 5 pages, " +
-            "including scanned pages. Timetables are always left alone. A file is moved only when " +
+            "left alone without opening it. " +
+            readingRule +
+            "Timetables are always left alone. A file is moved only when " +
             "I find exactly one of your courses and no other course code. If I find none, or more " +
             "than one, it stays where it is.");
 
@@ -242,7 +298,7 @@ public sealed class ChatSession
             {
                 case "signals":
                     _vm.SetProgress(p.Total == 0 ? 0 : p.Done * 25.0 / p.Total,
-                        $"Reading PDF {p.Done} of {p.Total}...");
+                        $"Reading file {p.Done} of {p.Total}...");
                     break;
                 case "ocr-load":
                     _vm.SetProgress(25, $"Getting the text reader ready (first scan only)... {p.FileName}");
@@ -287,7 +343,8 @@ public sealed class ChatSession
                 {
                     var entry = entries[dump.File.Path];
                     return (entry, ScanCache.FromResult(entry, dump));
-                }));
+                }),
+            extensions);
 
         var moves = result.Moves.ToList();
         var dumps = result.Dumps.ToList();
@@ -325,7 +382,7 @@ public sealed class ChatSession
         _vm.StepLabel = "Done";
 
         var summary = new StringBuilder();
-        summary.Append($"Done. Filed {moved} of {result.Items.Count} PDF files");
+        summary.Append($"Done. Filed {moved} of {Counted(result.Items.Count)}");
         summary.Append($" in {result.Stats.TotalSeconds:0.0}s.");
 
         if (dumps.Count > 0)
@@ -346,7 +403,7 @@ public sealed class ChatSession
         if (result.Stats.OpenedFiles < result.Items.Count)
         {
             summary.AppendLine();
-            summary.Append($"Opened {result.Stats.OpenedFiles} of {result.Items.Count} PDF files. ");
+            summary.Append($"Opened {result.Stats.OpenedFiles} of {result.Items.Count} files. ");
             summary.Append("The rest were already checked, or had a course code in the file name.");
         }
 
@@ -671,7 +728,7 @@ public sealed class ChatSession
     private async Task<List<string>> AskCoursesAsync(CancellationToken token)
     {
         var current =
-            "Step 2 of 3: Your course list\n" +
+            "Step 2 of 4: Your course list\n" +
             "Paste or type your courses, one per line, or separated by semicolons.\n" +
             "Or paste your whole course structure, or use Browse... to pick a PDF or text file\n" +
             "that has it. I will read the courses from it. You can also drop the file on the window.\n" +
@@ -980,7 +1037,7 @@ public sealed class ChatSession
     private async Task<(int moved, int failed)> ExecuteMovesAsync(
         List<SorterFileResult> moves, string targetDir, CancellationToken token)
     {
-        _vm.StepLabel = "Moving your PDFs";
+        _vm.StepLabel = "Moving your files";
         _vm.SetProgress(0, moves.Count == 1 ? "Filing 1 file..." : $"Filing {moves.Count} files...");
 
         var undoBatch = new List<MoveRecord>();
@@ -1040,12 +1097,14 @@ public sealed class ChatSession
     {
         if (dumps.Count == 0)
         {
-            _vm.Add("Every PDF had exactly one course code. Nothing was left behind.", ChatRole.Success);
+            _vm.Add("Every file had exactly one course code. Nothing was left behind.", ChatRole.Success);
             return;
         }
 
         var sb = new StringBuilder();
-        sb.Append("These ").Append(dumps.Count).AppendLine(" files were left where they were:");
+        sb.Append(dumps.Count == 1
+            ? "This file was left where it was:"
+            : $"These {dumps.Count} files were left where they were:");
         sb.AppendLine();
 
         foreach (var item in dumps.OrderBy(i => i.File.FileName, StringComparer.OrdinalIgnoreCase))
@@ -1352,13 +1411,17 @@ public sealed class ChatSession
             "  /rollback    go back to the older version\n" +
             "  /support     show or hide the support section\n" +
             "\n" +
-            "A PDF is moved only when I find exactly one of your course codes, and no other\n" +
-            "course code, in its file name, title or first 5 pages. Timetables and papers that\n" +
-            "cover several courses are always left where they are. If I find no code, or more\n" +
-            "than one, the file stays put. Nothing is ever renamed.\n" +
+            "A file is moved only when I find exactly one of your course codes, and no other\n" +
+            "course code, in its file name, title, first 5 PDF pages or first 5 slides. Timetables\n" +
+            "and papers that cover several courses are always left where they are. If I find no\n" +
+            "code, or more than one, the file stays put. Nothing is ever renamed.\n" +
             "\n" +
             "At step 2 you can paste a whole course structure, or drop in the file that holds\n" +
             "one (.pdf, .txt, .md, .csv, .rtf).\n" +
+            "\n" +
+            "At step 3 choose PDFs, PowerPoints (.pptx/.ppsx) or both. Older .ppt files are not\n" +
+            "read. PowerPoints take longer, and a PowerPoint file made only of pictures has no\n" +
+            "text to read.\n" +
             "\n" +
             "You can drop a folder, or a course-structure file, onto this window at any time.\n" +
             "You can also copy the file in Explorer and press Ctrl+V.");
@@ -1425,13 +1488,14 @@ public sealed class ChatSession
     }
 
     private static string Greeting() =>
-        "Hi. I put school PDFs into folders by course.\n" +
-        "    I look at the file name and the first 5 pages, including scanned pages.\n" +
+        "Hi. I put school files into folders by course.\n" +
+        "    I look at the file name, the first 5 PDF pages (including scanned pages) and\n" +
+        "    the first 5 PowerPoint slides.\n" +
         "    Timetables and papers that cover several courses are always left alone.\n" +
         "    If I find no course code, or more than one, the file stays where it is.\n" +
         "    Nothing is ever renamed.\n" +
         "\n" +
-        "Three quick questions, then I show you the plan. Nothing moves until you approve it.\n" +
+        "Four quick questions, then I show you the plan. Nothing moves until you approve it.\n" +
         "You can type your courses, or give me your whole course structure: paste it, or drop\n" +
         "the PDF in. Type /help for commands.";
 
@@ -1445,7 +1509,7 @@ public sealed class ChatSession
         if (moves.Count > 0)
         {
             sb.Append("Plan: move ").Append(moves.Count).Append(" of ").Append(result.Items.Count)
-              .AppendLine(" PDF files into these course folders:");
+              .AppendLine(" files into these course folders:");
             sb.AppendLine(targetDir);
             sb.AppendLine();
 
@@ -1478,8 +1542,11 @@ public sealed class ChatSession
         }
 
         if (dumps.Count > 0)
-            sb.Append(dumps.Count)
-              .AppendLine(" files don't have exactly one of your course codes, so they stay where they are. I'll list them at the end.");
+        {
+            sb.AppendLine(dumps.Count == 1
+                ? "1 file doesn't have exactly one of your course codes, so it stays where it is. I'll list it at the end."
+                : $"{dumps.Count} files don't have exactly one of your course codes, so they stay where they are. I'll list them at the end.");
+        }
 
         return sb.ToString();
     }
@@ -1491,10 +1558,12 @@ public sealed class ChatSession
     {
         "filename" => "file name",
         "folder" => "folder name",
-        "title" => "PDF title",
-        "header" => "page heading",
+        "title" => "file title",
+        "header" => "heading",
         "text" => "page text",
+        "slide" => "slide text",
         "ocr" => "scanned pages",
+        "slides" => "slide text",
         _ => tier
     };
 }

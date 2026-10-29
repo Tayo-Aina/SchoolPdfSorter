@@ -383,6 +383,46 @@ public sealed class IncrementalTests
     }
 
     [Fact]
+    public void Cache_keeps_decisions_for_file_types_that_were_not_scanned()
+    {
+        var root = NewDirectory();
+        var cacheDir = NewDirectory();
+
+        try
+        {
+            var pdf = WritePdf(root, "notes.pdf");
+            var deck = WritePdf(root, "deck.pptx");
+            var pdfEntry = Entry(pdf);
+            var deckEntry = Entry(deck);
+            var cachePath = Path.Combine(cacheDir, "cache.json");
+
+            var cache = ScanCache.Load(cachePath);
+            cache.Remember(root, Courses, new[]
+            {
+                (pdfEntry, new CachedDump(pdfEntry.Length, pdfEntry.ModifiedUtcTicks,
+                    "no code", "ocr", null))
+            }, new[] { ".pdf" });
+
+            cache.Remember(root, Courses, new[]
+            {
+                (deckEntry, new CachedDump(deckEntry.Length, deckEntry.ModifiedUtcTicks,
+                    "no code", "slides", null))
+            }, new[] { ".pptx" });
+
+            var hits = ScanCache.Load(cachePath)
+                .Unchanged(root, Courses, new[] { pdfEntry, deckEntry });
+
+            Assert.True(hits.ContainsKey(pdf));
+            Assert.True(hits.ContainsKey(deck));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+            Directory.Delete(cacheDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Cache_treats_a_corrupt_file_as_empty()
     {
         var cacheDir = NewDirectory();

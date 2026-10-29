@@ -2,19 +2,20 @@ using System.IO;
 
 namespace SchoolPdfSorter.Engine;
 
-/// <summary>One PDF found by the scanner, with the metadata the cache uses to spot changes.</summary>
+/// <summary>One document found by the scanner, with the metadata the cache uses to spot changes.</summary>
 public sealed record PdfScanEntry(string Path, long Length, long ModifiedUtcTicks);
 
-/// <summary>PDFs to consider and the course folders that were recognized as already organized.</summary>
+/// <summary>Documents to consider and the course folders that were recognized as already organized.</summary>
 public sealed record PdfScanResult(
     IReadOnlyList<PdfScanEntry> Files,
     IReadOnlyList<string> SortedFolders);
 
 /// <summary>
-/// Finds PDFs under a source folder. Folders directly under the target that already name
+/// Finds documents under a source folder. Folders directly under the target that already name
 /// exactly one of the listed courses are treated as sorted and skipped, so a later run does
 /// not walk back through every file the app already filed. The target tree itself is skipped
-/// when it lives inside the source.
+/// when it lives inside the source. Only the requested extensions are returned, so a run that
+/// asked for PDFs never has to open a PowerPoint file.
 /// </summary>
 public static class PdfScanner
 {
@@ -22,7 +23,8 @@ public static class PdfScanner
         string sourceDir,
         string targetDir,
         bool includeSubfolders,
-        IEnumerable<string> courses)
+        IEnumerable<string> courses,
+        IEnumerable<string>? extensions = null)
     {
         var sourceRoot = Path.GetFullPath(sourceDir);
         var targetRoot = Path.GetFullPath(targetDir);
@@ -34,14 +36,23 @@ public static class PdfScanner
         var excludeTarget = !sameRoot &&
                             targetFull.StartsWith(sourceFull, StringComparison.OrdinalIgnoreCase);
 
+        var types = NormalizeExtensions(extensions);
         var sortedFolders = FindSortedFolders(targetRoot, courses);
         var option = includeSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
 
         var files = new List<PdfScanEntry>();
         var skipped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var file in Directory.EnumerateFiles(sourceRoot, "*.pdf", option))
+        foreach (var file in Directory.EnumerateFiles(sourceRoot, "*", option))
         {
+            // Office owner/lock files are ~$name.pptx and can carry a course code in the
+            // name. They are junk, not presentations.
+            if (Path.GetFileName(file).StartsWith("~$", StringComparison.Ordinal))
+                continue;
+
+            if (!types.Contains(Path.GetExtension(file)))
+                continue;
+
             if (excludeTarget && IsUnder(file, targetFull))
                 continue;
 
@@ -108,6 +119,25 @@ public static class PdfScanner
         }
 
         return folders;
+    }
+
+    private static HashSet<string> NormalizeExtensions(IEnumerable<string>? extensions)
+    {
+        var types = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var extension in extensions ?? new[] { ".pdf" })
+        {
+            if (string.IsNullOrWhiteSpace(extension))
+                continue;
+
+            var value = extension.Trim();
+            types.Add(value.StartsWith('.') ? value : "." + value);
+        }
+
+        if (types.Count == 0)
+            types.Add(".pdf");
+
+        return types;
     }
 
     private static string WithSeparator(string directory)

@@ -104,14 +104,38 @@ public sealed class ScanCache
     /// <summary>
     /// Replaces the cache for this source with the files that are still left alone. Files that
     /// were moved are naturally dropped; changed files were rechecked and are saved fresh.
+    /// When <paramref name="extensions"/> is given, decisions for other file types are kept, so
+    /// a PDFs-only run does not throw away what a PowerPoint-only run already learned.
     /// </summary>
     public void Remember(
         string sourceDir,
         IReadOnlyList<string> courses,
-        IEnumerable<(PdfScanEntry File, CachedDump Dump)> dumps)
+        IEnumerable<(PdfScanEntry File, CachedDump Dump)> dumps,
+        IEnumerable<string>? extensions = null)
     {
         var root = Root(sourceDir);
+        var sourceKey = SourceKey(sourceDir);
         var files = new Dictionary<string, FileEntry>(StringComparer.OrdinalIgnoreCase);
+
+        if (extensions is not null &&
+            _data.Sources.TryGetValue(sourceKey, out var previous) &&
+            previous.Files is not null &&
+            string.Equals(previous.Rules, Rules, StringComparison.Ordinal) &&
+            string.Equals(previous.Courses, CoursesFingerprint(courses), StringComparison.Ordinal))
+        {
+            var types = new HashSet<string>(
+                extensions.Select(extension =>
+                    extension.StartsWith('.') ? extension : "." + extension),
+                StringComparer.OrdinalIgnoreCase);
+            if (types.Count > 0)
+            {
+                foreach (var (key, entry) in previous.Files)
+                {
+                    if (!types.Contains(Path.GetExtension(key)))
+                        files[key] = entry;
+                }
+            }
+        }
 
         foreach (var (file, dump) in dumps)
         {

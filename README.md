@@ -1,16 +1,22 @@
 # School PDF Sorter
 
-A small offline Windows app that files school PDFs into one folder per course.
+A small offline Windows app that files school PDFs and PowerPoint files into one
+folder per course.
 
-It is deliberately strict: a PDF moves only when **exactly one** course code from
+It is deliberately strict: a file moves only when **exactly one** course code from
 your course list is identified and no other course code appears in the checked
-pages. If no code is found, or if two or more different course codes are found,
+material. If no code is found, or if two or more different course codes are found,
 the file does not move at all. Timetables and multi-course past-question packs are
 always left alone. There is no `_Unsorted` folder and no cleanup sweep.
 
 It never renames a file. A very strong name/title match on an untouched file can
 be shown as a note (`looks like EIE 301 ...`), but that note is only a hint: it
 never moves or renames anything.
+
+Before scanning, you choose whether to look through PDFs only, PowerPoint slides
+only, or both. PowerPoint support reads `.pptx` and `.ppsx`; older `.ppt` files are
+ignored. PowerPoints make a run take longer, and a PowerPoint file made only of
+pictures has no text to read, so it stays where it is.
 
 ## Run it
 
@@ -50,14 +56,19 @@ For each PDF it looks, in order, at:
 5. the text layer of pages 1-5
 6. OCR of pages 1-5 (scans only, rendered at 200 DPI)
 
-All available evidence is combined before deciding. A PDF moves only when every
+For a PowerPoint file the same order applies, but step 3 is the document title,
+step 4 is the first line of slide 1, and step 5 is the text of slides 1-5. A
+PowerPoint file has no OCR fallback: slides that are only pictures have no text to
+read.
+
+All available evidence is combined before deciding. A file moves only when every
 checked level points to the same single course:
 
 - exactly one listed course code, and no other course code anywhere -> move it
   into that course's folder
 - two or more listed course codes -> leave it where it is
 - one listed course code plus a code from another course -> leave it where it is
-- no course code -> try OCR, then leave it where it is
+- no course code -> try OCR for a PDF, then leave it where it is
 
 The file name and folder are checked first. A different course code in the file
 name (for example `CSC 201` when your list has only `EIE 301`) makes the app leave
@@ -102,14 +113,18 @@ and not a rename.
    spreadsheet or the printed structure), or drop in the file that holds it. I read
    the course codes out of it. See [Course structure](#course-structure) below.
 
-3. Paste the target folder. Its parent folder must already exist.
-4. Review the plan. Nothing is written to disk until you approve it.
-5. Type `/undo` to move the last approved batch back.
+3. Choose what to look through: **PDFs only**, **PowerPoint slides only**, or
+   **both**. PowerPoints take longer, because every PowerPoint file is opened and
+   its slides read; `.ppt` files are ignored.
+4. Paste the target folder. Its parent folder must already exist.
+5. Review the plan. Nothing is written to disk until you approve it.
+6. Type `/undo` to move the last approved batch back.
 
 Useful commands: `/start`, `/cancel`, `/courses`, `/subfolders`, `/help`.
 
-Only `.pdf` files are considered. Scan subfolders is on by default; the target
-folder is excluded when it is inside the source folder.
+Only the file types you chose are considered: `.pdf`, `.pptx` and `.ppsx`.
+Scan subfolders is on by default; the target folder is excluded when it is inside
+the source folder.
 
 ## Course structure
 
@@ -144,10 +159,10 @@ A scanned structure is imperfect, so the app is careful about it:
 - Nothing is filed on a guess. A misread code only means that course's files stay
   where they are; it can never pull a file into the wrong folder.
 
-Because a scanned structure can lose a course this way, after finding your PDFs the
+Because a scanned structure can lose a course this way, after finding your files the
 app also reads the **file names** in that folder and, when one or two dozen files all
 say `GST 311` or `ICE 414` while your list lacks them, it shows that list and asks
-whether to add them. Only file names are read at that point: no PDF is opened and
+whether to add them. Only file names are read at that point: no file is opened and
 nothing inside a file is read. Adding a course does not loosen the rule. A file still
 moves only when exactly one of your courses is found in it and no other course code
 appears. Say no and those files stay where they are.
@@ -164,7 +179,8 @@ turn on and no step to perform:
   not reopened and their pages are not read again. They still appear in the plan
   and in the final "left untouched" list, exactly as before.
 - A file is rechecked when its size, last-write time, the course list, or the app
-  build changes. New PDFs are always checked.
+  build changes. New files of the type you chose are always checked. Switching
+  between PDFs and PowerPoints keeps the remembered decisions for the other type.
 
 The memory lives outside your folders, at
 `%LocalAppData%\SchoolPdfSorter\checked-files.json`. It is written before the plan
@@ -307,21 +323,24 @@ every extracted code was usable by the matcher.
 
 ## Limitations
 
-- Only the first 5 pages are searched. A code that appears only later will not
-  be found, and the file stays put.
-- A different course code in the file name is trusted over the PDF content and
+- Only the first 5 pages or the first 5 slides are searched. A code that appears
+  only later will not be found, and the file stays put.
+- PowerPoint reading is text-only. A PowerPoint file made of pictures, or one with
+  text stored as an image, cannot be read and stays where it is. Legacy `.ppt`
+  files are not read at all.
+- A different course code in the file name is trusted over the content and
   skips that file. This is deliberate: it avoids reading and OCR-ing files that
   clearly name another course.
-- A course code in the folder name is verified against the PDF's contents before
-  anything moves. If the PDF cannot be opened, it stays put.
+- A course code in the folder name is verified against the file's contents before
+  anything moves. If the file cannot be opened, it stays put.
 - The rule is intentionally strict. A normal course handout that merely mentions
-  another course code in its first five pages will also stay put. That is the
-  tradeoff for never filing a timetable or multi-course pack under one course.
+  another course code in its first five pages or slides will also stay put. That is
+  the tradeoff for never filing a timetable or multi-course pack under one course.
 - A `looks like ...` note is only a hint. It uses conservative word matching and
   OCR-confusion fixes in codes; it never moves or renames a file.
 - Course folders are named exactly as the courses are typed.
 - A folder directly under the target that names exactly one course is assumed to
-  be sorted. If you keep unrelated PDFs in a folder with a course name, they will
+  be sorted. If you keep unrelated files in a folder with a course name, they will
   not be scanned. Put them somewhere else before running, or move them out of the
   target folder.
 - The incremental memory is keyed to the course list and app build. Changing
