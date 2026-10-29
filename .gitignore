@@ -17,4 +17,5 @@ support.local.json
 src/SchoolPdfSorter.App/Support/support.g.cs
 
 # Wrangler's local state (account cache, build cache)
+.wrangler/
 tools/usage-worker/.wrangler/

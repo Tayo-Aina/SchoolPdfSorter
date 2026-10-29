@@ -151,6 +151,10 @@ Non-obvious details, learned the hard way:
 - There is no `gh` CLI on this machine. Pushes use the stored Git Credential Manager
   credentials. Large pushes may need
   `-c http.version=HTTP/1.1 -c http.postBuffer=524288000`.
+- The 111 MB release exe uploads slowly on this connection (about 0.25-0.5 MB/s,
+  7-9 minutes). A reset/408 can happen near the end; retry the upload rather than
+  assuming the asset is usable. An asset in `starter` state is incomplete and must
+  be deleted before retrying.
 - `release.ps1` seals support details from gitignored `support.local.json` into a
   generated `support.g.cs`. Never commit support numbers, and never commit the
   generated file. Tampering with the sealed payload hides the support section.
