@@ -91,7 +91,7 @@
                            FontSize="13.5"
                            FontWeight="SemiBold"
                            Foreground="{StaticResource TextBrush}" />
-                <TextBlock Text="School PDF Sorter is free and stays free. If it saved you some time, you can say thanks with a small donation to the team behind this app."
+                <TextBlock Text="School PDF Sorter is free and stays free. If it saved you some time, you can say thanks to the team Lunara with a small donation."
                            FontSize="12.5"
                            Margin="0,5,0,0"
                            TextWrapping="Wrap"
