@@ -97,6 +97,12 @@ original folder and is listed once at the end. Files with a very high-confidence
 name/title match get a `looks like ...` note in that list. The note is not a move
 and not a rename.
 
+An obvious spelling slip is treated as the course it names. If an unlisted code has
+the same number and its department letters are an anagram or one letter away from
+exactly one of your courses (`CEG 321` when your list has `GEC 321`), the file is
+filed under that listed course. If more than one course could match, it is left
+alone. A code with a different number is still a different course.
+
 ## Using the app
 
 1. Paste the source folder (or drag it onto the window).

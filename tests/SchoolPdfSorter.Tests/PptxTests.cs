@@ -140,6 +140,28 @@ public sealed class PptxTests
     }
 
     [Fact]
+    public void Sorter_maps_a_spelling_slip_to_the_listed_course()
+    {
+        var root = NewDirectory();
+
+        try
+        {
+            var path = PptxFixture.Create(root, "finance.pptx", "Finance",
+                "CEG 321 Sources of Finance");
+
+            var result = new Sorter(new[] { "GEC 321 Entrepreneurial Studies" }).Run(new[] { path });
+
+            var item = Assert.Single(result.Items);
+            Assert.True(item.IsMove);
+            Assert.Equal("gec321", item.Code);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Sorter_leaves_a_picture_only_deck_alone()
     {
         var root = NewDirectory();

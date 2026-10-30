@@ -176,6 +176,15 @@ public class CourseCodesTests
     }
 
     [Fact]
+    public void Variant_match_maps_a_spelling_slip_of_a_listed_code()
+    {
+        var courses = new[] { CourseCodes.TryCreate("GEC 321 Entrepreneurial Studies")! };
+
+        Assert.Equal("gec321", CourseCodes.MatchVariant("CEG 321", courses)!.Code);
+        Assert.Null(CourseCodes.MatchVariant("CVE 435", courses));
+    }
+
+    [Fact]
     public void Prose_scan_keeps_a_two_letter_code_with_a_suffix()
     {
         var courses = new[] { CourseCodes.TryCreate("EIE 301 Signals and Systems")! };

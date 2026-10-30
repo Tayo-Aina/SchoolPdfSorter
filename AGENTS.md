@@ -44,6 +44,13 @@ change how much extra work is done, never the decision rule. Tests in
 `SorterTests.cs` assert the exact reasons; update them only together with a
 deliberate behaviour change.
 
+One deliberate exception: an unlisted code whose number matches a listed course and
+whose letters are an anagram or one letter away from it is treated as that listed
+course (`CEG 321` -> `GEC 321`). `CourseCodes.MatchVariant` returns a match only when
+exactly one listed course fits; if two could fit, it returns null and the code stays
+foreign. Do not broaden this into fuzzy matching of different numbers or unrelated
+prefixes.
+
 Timetable/multi-course detection is in `Sorter.IsTimetable` / `IsMultiCourse` and is
 shared by filename and content checks. If a new phrase is added, add a test for both
 a name hit and a content hit.

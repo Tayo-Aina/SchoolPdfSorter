@@ -139,6 +139,74 @@ public static class CourseCodes
     }
 
     /// <summary>
+    /// The one listed course whose code is an obvious spelling slip from
+    /// <paramref name="unlisted"/>: same number, and the letters are an anagram or one letter
+    /// apart. Returns null when there is no match or more than one, so an ambiguous reading is
+    /// never guessed. Used only for unlisted codes; listed codes already match directly.
+    /// </summary>
+    public static CourseCode? MatchVariant(string unlisted, IReadOnlyList<CourseCode> courses)
+    {
+        var foreign = TryCreate(unlisted);
+        if (foreign is null)
+            return null;
+
+        var (foreignLetters, foreignNumber) = SplitCode(foreign.Code);
+        if (foreignLetters.Length < 3)
+            return null;
+
+        CourseCode? match = null;
+
+        foreach (var course in courses)
+        {
+            var (letters, number) = SplitCode(course.Code);
+            if (letters.Length != foreignLetters.Length ||
+                !string.Equals(number, foreignNumber, StringComparison.OrdinalIgnoreCase) ||
+                !LooksLikeVariant(foreignLetters, letters))
+                continue;
+
+            if (match is not null &&
+                !string.Equals(match.Code, course.Code, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            match = course;
+        }
+
+        return match;
+    }
+
+    private static (string Letters, string Number) SplitCode(string normalized)
+    {
+        int split = 0;
+        while (split < normalized.Length && char.IsLetter(normalized[split]))
+            split++;
+
+        return (normalized[..split], normalized[split..]);
+    }
+
+    private static bool LooksLikeVariant(string a, string b)
+    {
+        if (a.Equals(b, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var sortedA = a.ToUpperInvariant().OrderBy(c => c);
+        var sortedB = b.ToUpperInvariant().OrderBy(c => c);
+        if (sortedA.SequenceEqual(sortedB))
+            return true;
+
+        int differences = 0;
+        for (int i = 0; i < a.Length; i++)
+        {
+            if (char.ToUpperInvariant(a[i]) == char.ToUpperInvariant(b[i]))
+                continue;
+
+            if (++differences > 1)
+                return false;
+        }
+
+        return differences == 1;
+    }
+
+    /// <summary>
     /// Codes that are not in the user's course list. With <paramref name="includeUnknownPrefixes"/>
     /// false, only codes sharing a prefix with a listed course are reported (EIE 315 when EIE 301 is
     /// listed). With true, a code from any department is reported (CSC 201 when only EIE courses are

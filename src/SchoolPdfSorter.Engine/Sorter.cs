@@ -437,14 +437,7 @@ public sealed class Sorter
             evidence.MultiWhere = where;
 
         foreach (var hit in CourseCodes.Find(text, _codes))
-        {
-            if (evidence.Listed.ContainsKey(hit.Code))
-                continue;
-
-            evidence.Listed[hit.Code] = hit;
-            evidence.ListedWhere[hit.Code] = where;
-            evidence.ListedTier[hit.Code] = tier;
-        }
+            AddListed(evidence, hit, where, tier);
 
         if (!_opt.StopOnUnlistedCode)
             return;
@@ -452,9 +445,26 @@ public sealed class Sorter
         foreach (var code in CourseCodes.FindUnlisted(text, _codes,
                      includeUnknownPrefixes: true, requireUpperUnknown: prose))
         {
+            var variant = CourseCodes.MatchVariant(code, _codes);
+            if (variant is not null)
+            {
+                AddListed(evidence, variant, where, tier);
+                continue;
+            }
+
             if (!evidence.Foreign.ContainsKey(code))
                 evidence.Foreign[code] = where;
         }
+    }
+
+    private static void AddListed(Evidence evidence, CourseCode hit, string where, string tier)
+    {
+        if (evidence.Listed.ContainsKey(hit.Code))
+            return;
+
+        evidence.Listed[hit.Code] = hit;
+        evidence.ListedWhere[hit.Code] = where;
+        evidence.ListedTier[hit.Code] = tier;
     }
 
     /// <summary>Returns the reason to leave a file alone, or null when it can be filed.</summary>
