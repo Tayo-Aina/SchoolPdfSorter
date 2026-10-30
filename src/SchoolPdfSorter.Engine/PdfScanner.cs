@@ -8,7 +8,11 @@ public sealed record PdfScanEntry(string Path, long Length, long ModifiedUtcTick
 /// <summary>Documents to consider and the course folders that were recognized as already organized.</summary>
 public sealed record PdfScanResult(
     IReadOnlyList<PdfScanEntry> Files,
-    IReadOnlyList<string> SortedFolders);
+    IReadOnlyList<string> SortedFolders)
+{
+    /// <summary>Office lock files (~$name.pptx) that matched the chosen types but were ignored.</summary>
+    public int TemporaryFiles { get; init; }
+}
 
 /// <summary>
 /// Finds documents under a source folder. Folders directly under the target that already name
@@ -42,16 +46,20 @@ public static class PdfScanner
 
         var files = new List<PdfScanEntry>();
         var skipped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var temporary = 0;
 
         foreach (var file in Directory.EnumerateFiles(sourceRoot, "*", option))
         {
+            if (!types.Contains(Path.GetExtension(file)))
+                continue;
+
             // Office owner/lock files are ~$name.pptx and can carry a course code in the
             // name. They are junk, not presentations.
             if (Path.GetFileName(file).StartsWith("~$", StringComparison.Ordinal))
+            {
+                temporary++;
                 continue;
-
-            if (!types.Contains(Path.GetExtension(file)))
-                continue;
+            }
 
             if (excludeTarget && IsUnder(file, targetFull))
                 continue;
@@ -82,7 +90,10 @@ public static class PdfScanner
 
         return new PdfScanResult(
             files,
-            skipped.OrderBy(folder => folder, StringComparer.OrdinalIgnoreCase).ToList());
+            skipped.OrderBy(folder => folder, StringComparer.OrdinalIgnoreCase).ToList())
+        {
+            TemporaryFiles = temporary
+        };
     }
 
     /// <summary>

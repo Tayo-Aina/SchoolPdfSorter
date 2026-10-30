@@ -206,15 +206,18 @@ public sealed class PptxTests
 
             var pdfs = PdfScanner.Scan(root, root, includeSubfolders: true, Courses);
             Assert.Equal(new[] { "notes.pdf" }, Names(pdfs));
+            Assert.Equal(0, pdfs.TemporaryFiles);
 
             var decks = PdfScanner.Scan(root, root, includeSubfolders: true, Courses,
                 new[] { ".pptx", ".ppsx", ".pptm" });
             Assert.Equal(new[] { "deck.pptx", "macro.pptm", "show.ppsx" }, Names(decks));
+            Assert.Equal(1, decks.TemporaryFiles);
 
             var both = PdfScanner.Scan(root, root, includeSubfolders: true, Courses,
                 new[] { ".pdf", ".pptx", ".ppsx", ".pptm" });
             Assert.Equal(new[] { "deck.pptx", "macro.pptm", "notes.pdf", "show.ppsx" }, Names(both));
             Assert.DoesNotContain("legacy.ppt", Names(both));
+            Assert.Equal(1, both.TemporaryFiles);
         }
         finally
         {

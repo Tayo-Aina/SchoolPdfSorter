@@ -74,7 +74,8 @@ accept `.pdfx` for `*.pdf`.
 four steps:
 
 1. source folder
-2. course list (typed, imported, or found from the course codes in file names)
+2. course list (typed, imported, or found from the files with
+   **Find my courses from my files**)
 3. what to look through: PDFs only / PowerPoints only / both
 4. target folder
 
@@ -85,15 +86,29 @@ PowerPoint files cannot be read, legacy `.ppt` files are not read). After the sc
 renumber every label, the help text and the greeting, and update README "Using the
 app". The wording is for students: keep it plain and avoid technical jargon.
 
-Step 2's **Find my courses from the file names** button reads only file names, never
-contents, and deliberately offers code-only labels (`EIE 326`) because titles are not
-reliably present. If it finds nothing, it says so rather than guessing; do not silently
-fall back to reading files during that step. `CourseDiscovery` skips personal and
-administrative names (SIWES, SWEP, internship, CV/resume, certificate, receipt,
-clearance, transcript, admission, invoice, payment, birth, origin, medical/fitness,
-testimonial, statement of purpose, logbook, defence) and level markers such as
-`300 level`; do not remove this filter, or `Dara 400 siwes.pdf` becomes a fake course
-`DARA 400`.
+After the scan, `ReportScanNotes` explains what the run deliberately leaves alone:
+Office lock files starting with `~$` (temporary files, not the real documents; the
+user can delete them), folders whose names already match a course (left as they are;
+folders are never renamed or moved), and Word/text/Excel/image files whose names
+carry a course code (listed with advice to save them as PDF or PowerPoint). Keep
+these notices honest and plain.
+
+Step 2's **Find my courses from my files** button calls
+`CourseDiscovery.FromFiles`, which reads each PDF/PowerPoint's file name, metadata
+title, heading and first page or slide. It does not OCR scans in this step, so a
+scanned file can still need a typed list or an imported course structure, and the
+step takes a little longer than the old name-only check. Labels are still code-only
+(`EIE 326`) because titles are not reliable. If it finds nothing, it says so rather
+than guessing; do not silently turn that step into an OCR pass. `CourseDiscovery`
+skips personal and administrative names (SIWES, SWEP, internship, CV/resume,
+certificate, receipt, clearance, transcript, admission, invoice, payment, birth,
+origin, medical/fitness, testimonial, statement of purpose, logbook, defence) and
+level markers such as `300 level`; do not remove this filter, or `Dara 400 siwes.pdf`
+becomes a fake course `DARA 400`. `CourseDiscovery.MergeVariants` folds spelling
+variants that share a number when their prefixes are anagrams or one letter apart
+(file names `GEC 321`, a slide `CEG 321`); the spelling with the most file-name hits
+wins, so only `GEC 321` is offered and there is no `CEG` course. Codes with different
+numbers or prefix lengths never merge.
 
 The scanner is only given the extensions chosen in step 3. `ChatSession` also passes
 those extensions to `ScanCache.Remember`, which keeps cached decisions for the other

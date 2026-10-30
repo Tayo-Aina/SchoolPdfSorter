@@ -115,16 +115,22 @@ and not a rename.
    spreadsheet or the printed structure), or drop in the file that holds it. I read
    the course codes out of it. See [Course structure](#course-structure) below.
 
-   You can also press **Find my courses from the file names**. It reads the course
-   codes in the names of the files in your source folder and builds the list for you,
-   so you do not have to type anything. Folders are then named by code only (`EIE 326`),
-   because the full course title is not reliably in a file name. If your file names
-   have no course codes, it says so instead of guessing; type the list or import
-   your course structure. Personal documents (SIWES, SWEP, internship, CV/resume,
-   certificate, receipt, clearance, transcript, admission, invoice, payment, birth,
-   origin, medical/fitness, testimonial, statement of purpose, logbook, defence) and
-   level markers such as `300 level` are ignored, so `Dara 400 siwes.pdf` does not
-   become a course called `DARA 400`.
+   You can also press **Find my courses from my files**. It reads the file names and
+   the metadata title, heading and first page or slide of each PDF or PowerPoint file
+   in your source folder, then builds the list for you. It does not OCR scanned pages
+   in this step, so a scanned PDF may still need a typed list or your course structure.
+   Because it opens each file, it can take a little longer than the old name-only
+   check. Folders are named by code only (`EIE 326`), because the full course title is
+   not reliably in a file. If it finds no course codes, it says so instead of guessing;
+   type the list or import your course structure.
+
+   Spelling variants of the same number are merged. If the file names say `GEC 321`
+   and a slide says `CEG 321`, only `GEC 321` is offered; there is no `CEG` course.
+   Personal/admin documents (SIWES, SWEP, internship, CV/resume, certificate, receipt,
+   clearance, transcript, admission, invoice, payment, birth, origin, medical/fitness,
+   testimonial, statement of purpose, logbook, defence) and level markers such as
+   `300 level` are ignored, so `Dara 400 siwes.pdf` does not become a course called
+   `DARA 400`.
 
 3. Choose what to look through: **PDFs only**, **PowerPoint slides only**, or
    **both**. PowerPoints take longer, because every PowerPoint file is opened and
@@ -133,6 +139,16 @@ and not a rename.
    so nothing disappears silently. Open such a file in PowerPoint, save it as
    `.pptx`, and run again.
 4. Paste the target folder. Its parent folder must already exist.
+
+   After scanning, the app explains what it deliberately leaves alone:
+
+   - Office lock files starting with `~$` are temporary files, not the real documents.
+     You can delete them.
+   - Folders whose names already match a course are left as they are. The app does not
+     rename or move folders.
+   - Word, text, Excel and image files cannot be read. If their names contain a course
+     code, they are listed with advice to save them as PDF or PowerPoint.
+
 5. Review the plan. Nothing is written to disk until you approve it.
 6. Type `/undo` to move the last approved batch back.
 
@@ -355,16 +371,23 @@ every extracted code was usable by the matcher.
 - The rule is intentionally strict. A normal course handout that merely mentions
   another course code in its first five pages or slides will also stay put. That is
   the tradeoff for never filing a timetable or multi-course pack under one course.
-- **Find my courses from the file names** only reads file names. A course with no
-  code in any file name will not be in the automatic list; those files stay where
-  they are unless you add the course yourself or import your course structure.
+- **Find my courses from my files** reads names plus the metadata title, heading and
+  first page or slide, without OCR. A course whose code appears only on a scanned page
+  will not be in the automatic list; those files stay where they are unless you add
+  the course yourself or import your course structure. It can take longer than the
+  old name-only check.
+- Word, text, Excel and image files are never read. If their names contain a course
+  code, the app lists them after the scan and suggests saving them as PDF or
+  PowerPoint.
+- Office lock files starting with `~$` are temporary files, not the real documents.
+  They are ignored, and you can delete them.
 - A `looks like ...` note is only a hint. It uses conservative word matching and
   OCR-confusion fixes in codes; it never moves or renames a file.
 - Course folders are named exactly as the courses are typed.
 - A folder directly under the target that names exactly one course is assumed to
   be sorted. If you keep unrelated files in a folder with a course name, they will
   not be scanned. Put them somewhere else before running, or move them out of the
-  target folder.
+  target folder. The app does not rename or move folders.
 - The incremental memory is keyed to the course list and app build. Changing
   either one makes the next run check everything again.
 - The portable build is Windows x64 only. The single exe is large because it
