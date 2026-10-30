@@ -14,9 +14,11 @@ be shown as a note (`looks like EIE 301 ...`), but that note is only a hint: it
 never moves or renames anything.
 
 Before scanning, you choose whether to look through PDFs only, PowerPoint slides
-only, or both. PowerPoint support reads `.pptx` and `.ppsx`; older `.ppt` files are
-ignored. PowerPoints make a run take longer, and a PowerPoint file made only of
-pictures has no text to read, so it stays where it is.
+only, or both. PowerPoint support reads `.pptx`, `.ppsx` and `.pptm`; legacy `.ppt`
+files cannot be read, but those whose names contain a course code are listed with a
+warning telling you to open them in PowerPoint and save them as `.pptx`. PowerPoints
+make a run take longer, and a PowerPoint file made only of pictures has no text to
+read, so it stays where it is.
 
 ## Run it
 
@@ -56,10 +58,10 @@ For each PDF it looks, in order, at:
 5. the text layer of pages 1-5
 6. OCR of pages 1-5 (scans only, rendered at 200 DPI)
 
-For a PowerPoint file the same order applies, but step 3 is the document title,
-step 4 is the first line of slide 1, and step 5 is the text of slides 1-5. A
-PowerPoint file has no OCR fallback: slides that are only pictures have no text to
-read.
+For a PowerPoint file (`.pptx`, `.ppsx` or `.pptm`) the same order applies, but
+step 3 is the document title, step 4 is the first line of slide 1, and step 5 is
+the text of slides 1-5. A PowerPoint file has no OCR fallback: slides that are only
+pictures have no text to read.
 
 All available evidence is combined before deciding. A file moves only when every
 checked level points to the same single course:
@@ -118,18 +120,26 @@ and not a rename.
    so you do not have to type anything. Folders are then named by code only (`EIE 326`),
    because the full course title is not reliably in a file name. If your file names
    have no course codes, it says so instead of guessing; type the list or import
-   your course structure.
+   your course structure. Personal documents (SIWES, SWEP, internship, CV/resume,
+   certificate, receipt, clearance, transcript, admission, invoice, payment, birth,
+   origin, medical/fitness, testimonial, statement of purpose, logbook, defence) and
+   level markers such as `300 level` are ignored, so `Dara 400 siwes.pdf` does not
+   become a course called `DARA 400`.
 
 3. Choose what to look through: **PDFs only**, **PowerPoint slides only**, or
    **both**. PowerPoints take longer, because every PowerPoint file is opened and
-   its slides read; `.ppt` files are ignored.
+   its slides read. Legacy `.ppt` files cannot be read: when PowerPoints are
+   selected, any `.ppt` whose name contains a course code is listed with a warning,
+   so nothing disappears silently. Open such a file in PowerPoint, save it as
+   `.pptx`, and run again.
 4. Paste the target folder. Its parent folder must already exist.
 5. Review the plan. Nothing is written to disk until you approve it.
 6. Type `/undo` to move the last approved batch back.
 
 Useful commands: `/start`, `/cancel`, `/courses`, `/subfolders`, `/help`.
 
-Only the file types you chose are considered: `.pdf`, `.pptx` and `.ppsx`.
+Only the file types you chose are considered: `.pdf`, `.pptx`, `.ppsx`
+and `.pptm`.
 Scan subfolders is on by default; the target folder is excluded when it is inside
 the source folder.
 
@@ -332,9 +342,11 @@ every extracted code was usable by the matcher.
 
 - Only the first 5 pages or the first 5 slides are searched. A code that appears
   only later will not be found, and the file stays put.
-- PowerPoint reading is text-only. A PowerPoint file made of pictures, or one with
-  text stored as an image, cannot be read and stays where it is. Legacy `.ppt`
-  files are not read at all.
+- PowerPoint reading is text-only and covers `.pptx`, `.ppsx` and `.pptm`. A
+  PowerPoint file made of pictures, or one with text stored as an image, cannot be
+  read and stays where it is. Legacy `.ppt` files are not read; those with a course
+  code in the name are listed in a warning so you can save them as `.pptx` and run
+  again.
 - A different course code in the file name is trusted over the content and
   skips that file. This is deliberate: it avoids reading and OCR-ing files that
   clearly name another course.

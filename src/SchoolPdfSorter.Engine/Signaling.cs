@@ -243,6 +243,11 @@ public static class CourseCodes
         "ref", "reg", "eq", "ii", "iii", "iv", "vi", "vii", "viii", "ix", "xi", "xii",
         "xiii", "xiv", "xv", "xvi", "xvii", "xviii", "xix", "xx", "xxi", "xxii", "xxiii",
         "xxiv", "xxv", "step", "steps", "done",
+        // Measurement and textbook words that OCR often writes in capitals before a
+        // number, such as "LOAD 500" or "MINS 25". They are not course codes.
+        "load", "loads", "line", "lines", "flux", "sum", "sin", "cos", "tan", "log",
+        "avg", "rms", "peak", "gain", "loss", "byte", "volt", "amps", "watt", "ohms",
+        "mins", "secs", "hrs", "mark", "marks", "points", "score", "total", "set",
     };
 
     /// <summary>

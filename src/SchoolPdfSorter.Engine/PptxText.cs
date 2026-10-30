@@ -16,9 +16,10 @@ public sealed record PptxTextInfo(
 }
 
 /// <summary>
-/// Reads .pptx and .ppsx natively: the file is a zip of slide XML, so the first slides' text is
-/// available without Office, a converter or OCR. Only text is read; a PowerPoint file made of
-/// pictures has no text to find, and notes pages are not read (the slides are what a student sees).
+/// Reads .pptx, .ppsx and .pptm natively: the file is a zip of slide XML, so the first slides'
+/// text is available without Office, a converter or OCR. Only text is read; a PowerPoint file
+/// made of pictures has no text to find, and notes pages are not read (the slides are what a
+/// student sees).
 /// </summary>
 public static class PptxText
 {
@@ -33,7 +34,8 @@ public static class PptxText
 
     public static bool IsPresentation(string path)
         => path.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase)
-           || path.EndsWith(".ppsx", StringComparison.OrdinalIgnoreCase);
+           || path.EndsWith(".ppsx", StringComparison.OrdinalIgnoreCase)
+           || path.EndsWith(".pptm", StringComparison.OrdinalIgnoreCase);
 
     public static PptxTextInfo Extract(string path, int maxSlides = MaxSlides)
     {

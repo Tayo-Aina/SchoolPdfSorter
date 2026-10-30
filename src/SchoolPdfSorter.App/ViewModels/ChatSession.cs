@@ -172,12 +172,12 @@ public sealed class ChatSession
         {
             case "pptx":
                 kind = "PowerPoint";
-                extensions = new[] { ".pptx", ".ppsx" };
+                extensions = new[] { ".pptx", ".ppsx", ".pptm" };
                 break;
 
             case "both":
                 kind = "PDF and PowerPoint";
-                extensions = new[] { ".pdf", ".pptx", ".ppsx" };
+                extensions = new[] { ".pdf", ".pptx", ".ppsx", ".pptm" };
                 break;
 
             default:
@@ -193,10 +193,10 @@ public sealed class ChatSession
         if (wanted != "pdf")
         {
             _vm.Add(
-                "PowerPoint files take longer than PDFs, because I have to open each PowerPoint " +
-                "file and look through its slides. PowerPoint files made only of pictures can't " +
-                "be read, so they stay where they are. Older .ppt files are not supported, and " +
-                "I will ignore them.",
+                "PowerPoint files (.pptx, .ppsx or .pptm) take longer than PDFs, because I have " +
+                "to open each PowerPoint file and look through its slides. PowerPoint files made " +
+                "only of pictures can't be read, so they stay where they are. Older .ppt files " +
+                "are not supported; if I find any, I will list them so you can save them as .pptx.",
                 ChatRole.Warning);
         }
 
@@ -228,6 +228,9 @@ public sealed class ChatSession
 
         var scan = PdfScanner.Scan(sourceDir, targetDir, _vm.IncludeSubfolders, _courses, extensions);
         var files = scan.Files;
+
+        if (wanted != "pdf")
+            WarnAboutLegacyPowerPoints(sourceDir, targetDir);
 
         if (files.Count == 0)
         {
@@ -816,7 +819,7 @@ public sealed class ChatSession
         {
             var scan = await Task.Run(
                 () => PdfScanner.Scan(sourceDir, sourceDir, _vm.IncludeSubfolders,
-                    Array.Empty<string>(), new[] { ".pdf", ".pptx", ".ppsx" }),
+                    Array.Empty<string>(), new[] { ".pdf", ".pptx", ".ppsx", ".pptm" }),
                 token);
 
             token.ThrowIfCancellationRequested();
@@ -857,6 +860,46 @@ public sealed class ChatSession
             ("Enter them again", "retry"));
 
         return confirm == "ok" ? courses : null;
+    }
+
+    /// <summary>
+    /// Old binary .ppt files cannot be read. Names that carry a course code are listed so
+    /// the user knows they were not silently ignored, and what to do with them.
+    /// </summary>
+    private void WarnAboutLegacyPowerPoints(string sourceDir, string targetDir)
+    {
+        List<string> legacy;
+
+        try
+        {
+            var scan = PdfScanner.Scan(sourceDir, targetDir, _vm.IncludeSubfolders, _courses,
+                new[] { ".ppt" });
+
+            legacy = scan.Files
+                .Select(file => file.Path)
+                .Where(path => CourseDiscovery.FromFileNames(new[] { path }).Count > 0)
+                .ToList();
+        }
+        catch
+        {
+            return;
+        }
+
+        if (legacy.Count == 0)
+            return;
+
+        var sb = new StringBuilder();
+        sb.AppendLine(legacy.Count == 1
+            ? "I can't read this old .ppt file. Open it in PowerPoint and save it as .pptx, then run again:"
+            : $"I can't read these {legacy.Count} old .ppt files. Open them in PowerPoint and save them as .pptx, then run again:");
+
+        foreach (var file in legacy.Take(10))
+            sb.Append("    ").AppendLine(Path.GetFileName(file));
+
+        if (legacy.Count > 10)
+            sb.Append("    ... and ").Append(legacy.Count - 10).AppendLine(" more");
+
+        _vm.Add(sb.ToString().TrimEnd(), ChatRole.Warning);
     }
 
     /// <summary>
@@ -1027,7 +1070,12 @@ public sealed class ChatSession
 
         foreach (var file in files)
         {
-            var codes = CourseCodes.FindCourseLikeCodes(Path.GetFileNameWithoutExtension(file.Path))
+            var name = Path.GetFileNameWithoutExtension(file.Path);
+
+            if (CourseDiscovery.LooksPersonal(name))
+                continue;
+
+            var codes = CourseCodes.FindCourseLikeCodes(name)
                 .Where(code => !listed.Contains(CourseCodes.Normalize(code)))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();

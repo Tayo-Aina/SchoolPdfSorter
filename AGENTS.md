@@ -51,12 +51,15 @@ a name hit and a content hit.
 ## Document types
 
 - PDF: `.pdf`, first 5 pages (`PdfText.MaxPages`), text layer then OCR.
-- PowerPoint: `.pptx` and `.ppsx`, first 5 slides (`PptxText.MaxSlides`), text only.
+- PowerPoint: `.pptx`, `.ppsx` and `.pptm`, first 5 slides (`PptxText.MaxSlides`), text only.
   Slides are read from the Open XML zip; `presentation.xml` and its rels give the
   real slide order, with a numeric filename fallback. Speaker notes are not read.
-- Legacy `.ppt` is intentionally unsupported and ignored by the scanner.
+- Legacy `.ppt` is intentionally unsupported and not read by the scanner. When
+  PowerPoints are selected, `.ppt` files whose names carry a course code are listed
+  in the run warning so the user can open them in PowerPoint and save them as
+  `.pptx`; do not let them silently disappear.
 - A PowerPoint file made only of pictures has no text. It is left alone with a "pictures" reason; never
-  try to OCR a `.pptx`.
+  try to OCR a PowerPoint file.
 - `FileSignals.PageCount` means pages for a PDF and slides for a PowerPoint file. Use
   `FileSignals.IsPresentation` to branch.
 
@@ -76,14 +79,21 @@ four steps:
 4. target folder
 
 Step 3 also posts a warning when PowerPoints are included (slower, picture-only
-PowerPoint files cannot be read, `.ppt` is not supported). If a step is added or reordered,
+PowerPoint files cannot be read, legacy `.ppt` files are not read). After the scan,
+`.ppt` files with a course code in the name are listed so the user can save them as
+`.pptx`. If a step is added or reordered,
 renumber every label, the help text and the greeting, and update README "Using the
 app". The wording is for students: keep it plain and avoid technical jargon.
 
 Step 2's **Find my courses from the file names** button reads only file names, never
 contents, and deliberately offers code-only labels (`EIE 326`) because titles are not
 reliably present. If it finds nothing, it says so rather than guessing; do not silently
-fall back to reading files during that step.
+fall back to reading files during that step. `CourseDiscovery` skips personal and
+administrative names (SIWES, SWEP, internship, CV/resume, certificate, receipt,
+clearance, transcript, admission, invoice, payment, birth, origin, medical/fitness,
+testimonial, statement of purpose, logbook, defence) and level markers such as
+`300 level`; do not remove this filter, or `Dara 400 siwes.pdf` becomes a fake course
+`DARA 400`.
 
 The scanner is only given the extensions chosen in step 3. `ChatSession` also passes
 those extensions to `ScanCache.Remember`, which keeps cached decisions for the other

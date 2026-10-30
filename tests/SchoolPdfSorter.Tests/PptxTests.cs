@@ -87,6 +87,31 @@ public sealed class PptxTests
         }
     }
 
+    [Fact]
+    public void Signals_read_a_macro_enabled_presentation_as_pages()
+    {
+        var root = NewDirectory();
+
+        try
+        {
+            var path = PptxFixture.Create(root, "macro.pptm", "Signals and Systems",
+                "EIE 326 Data Structures", "Week 3", "MTH 101 Elementary Mathematics I");
+
+            var signals = Signals.ExtractSafe(path);
+
+            Assert.True(signals.IsPresentation);
+            Assert.Equal(3, signals.PageCount);
+            Assert.Equal(
+                new[] { "EIE 326 Data Structures", "Week 3", "MTH 101 Elementary Mathematics I" },
+                signals.FirstPages);
+            Assert.Equal("Signals and Systems", signals.MetadataTitle);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     // ================================================================= sorter
 
     [Fact]
@@ -173,6 +198,7 @@ public sealed class PptxTests
         {
             Touch(root, "notes.pdf");
             Touch(root, "deck.pptx");
+            Touch(root, "macro.pptm");
             Touch(root, "show.ppsx");
             Touch(root, "legacy.ppt");
             Touch(root, "~$deck.pptx");
@@ -182,12 +208,12 @@ public sealed class PptxTests
             Assert.Equal(new[] { "notes.pdf" }, Names(pdfs));
 
             var decks = PdfScanner.Scan(root, root, includeSubfolders: true, Courses,
-                new[] { ".pptx", ".ppsx" });
-            Assert.Equal(new[] { "deck.pptx", "show.ppsx" }, Names(decks));
+                new[] { ".pptx", ".ppsx", ".pptm" });
+            Assert.Equal(new[] { "deck.pptx", "macro.pptm", "show.ppsx" }, Names(decks));
 
             var both = PdfScanner.Scan(root, root, includeSubfolders: true, Courses,
-                new[] { ".pdf", ".pptx", ".ppsx" });
-            Assert.Equal(new[] { "deck.pptx", "notes.pdf", "show.ppsx" }, Names(both));
+                new[] { ".pdf", ".pptx", ".ppsx", ".pptm" });
+            Assert.Equal(new[] { "deck.pptx", "macro.pptm", "notes.pdf", "show.ppsx" }, Names(both));
             Assert.DoesNotContain("legacy.ppt", Names(both));
         }
         finally
@@ -215,7 +241,7 @@ public sealed class PptxTests
         => File.WriteAllBytes(Path.Combine(directory, name), new byte[] { 1, 2, 3, 4 });
 }
 
-/// <summary>Builds the smallest valid .pptx/.ppsx a reader needs: parts, rels, slides and title.</summary>
+/// <summary>Builds the smallest valid .pptx/.ppsx/.pptm a reader needs: parts, rels, slides and title.</summary>
 internal static class PptxFixture
 {
     private static readonly XNamespace P = "http://schemas.openxmlformats.org/presentationml/2006/main";

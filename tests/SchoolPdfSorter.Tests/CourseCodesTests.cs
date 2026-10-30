@@ -164,6 +164,18 @@ public class CourseCodesTests
     }
 
     [Fact]
+    public void Prose_scan_ignores_engineering_units_and_timer_words()
+    {
+        var courses = new[] { CourseCodes.TryCreate("EIE 301 Signals and Systems")! };
+
+        var hits = CourseCodes.FindUnlisted(
+            "EIE 301; LOAD 500; LOAD 100; MINS 25; SUM 75; CSC 201 notes",
+            courses, includeUnknownPrefixes: true, requireUpperUnknown: true);
+
+        Assert.Equal(new[] { "CSC 201" }, hits);
+    }
+
+    [Fact]
     public void Prose_scan_keeps_a_two_letter_code_with_a_suffix()
     {
         var courses = new[] { CourseCodes.TryCreate("EIE 301 Signals and Systems")! };

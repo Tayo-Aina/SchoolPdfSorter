@@ -61,6 +61,19 @@ public class CourseDiscoveryTests
     }
 
     [Fact]
+    public void Personal_documents_do_not_add_a_course_code()
+    {
+        var found = CourseDiscovery.FromFileNames(new[]
+        {
+            "Dara 400 siwes.pdf",
+            "Tayo 300 level result.pdf",
+            "EIE 326 notes.pdf",
+        });
+
+        Assert.Equal(new[] { "EIE 326" }, found);
+    }
+
+    [Fact]
     public void No_codes_means_an_empty_list()
     {
         Assert.Empty(CourseDiscovery.FromFileNames(new[]
