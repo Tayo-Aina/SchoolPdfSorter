@@ -81,8 +81,8 @@ accept `.pdfx` for `*.pdf`.
 four steps:
 
 1. source folder
-2. course list (typed, imported, or found from the files with
-   **Find my courses from my files**)
+2. course list (typed, imported, or found from the file names with
+   **Find my courses from the file names**)
 3. what to look through: PDFs only / PowerPoints only / both
 4. target folder
 
@@ -100,22 +100,17 @@ folders are never renamed or moved), and Word/text/Excel/image files whose names
 carry a course code (listed with advice to save them as PDF or PowerPoint). Keep
 these notices honest and plain.
 
-Step 2's **Find my courses from my files** button calls
-`CourseDiscovery.FromFiles`, which reads each PDF/PowerPoint's file name, metadata
-title, heading and first page or slide. It does not OCR scans in this step, so a
-scanned file can still need a typed list or an imported course structure, and the
-step takes a little longer than the old name-only check. Labels are still code-only
-(`EIE 326`) because titles are not reliable. If it finds nothing, it says so rather
-than guessing; do not silently turn that step into an OCR pass. `CourseDiscovery`
-skips personal and administrative names (SIWES, SWEP, internship, CV/resume,
-certificate, receipt, clearance, transcript, admission, invoice, payment, birth,
-origin, medical/fitness, testimonial, statement of purpose, logbook, defence) and
-level markers such as `300 level`; do not remove this filter, or `Dara 400 siwes.pdf`
-becomes a fake course `DARA 400`. `CourseDiscovery.MergeVariants` folds spelling
-variants that share a number when their prefixes are anagrams or one letter apart
-(file names `GEC 321`, a slide `CEG 321`); the spelling with the most file-name hits
-wins, so only `GEC 321` is offered and there is no `CEG` course. Codes with different
-numbers or prefix lengths never merge.
+Step 2's **Find my courses from the file names** button calls
+`CourseDiscovery.FromFileNames`, which reads only names. Do not turn it into a
+content or OCR pass: a first-page scan was tried and produced dozens of fake codes
+from ordinary words followed by numbers (`this`, `our`, `pmb`, `inc`, `Aina`, `ece`,
+`for`, ...). If a code only appears inside a file, the normal leftover list names it
+and the user can add it. Labels are still code-only (`EIE 326`) because titles are not
+reliable. `CourseDiscovery` skips personal and administrative names (SIWES, SWEP,
+internship, CV/resume, certificate, receipt, clearance, transcript, admission,
+invoice, payment, birth, origin, medical/fitness, testimonial, statement of purpose,
+logbook, defence) and level markers such as `300 level`; do not remove this filter, or
+`Dara 400 siwes.pdf` becomes a fake course `DARA 400`.
 
 The scanner is only given the extensions chosen in step 3. `ChatSession` also passes
 those extensions to `ScanCache.Remember`, which keeps cached decisions for the other

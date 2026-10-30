@@ -121,17 +121,14 @@ alone. A code with a different number is still a different course.
    spreadsheet or the printed structure), or drop in the file that holds it. I read
    the course codes out of it. See [Course structure](#course-structure) below.
 
-   You can also press **Find my courses from my files**. It reads the file names and
-   the metadata title, heading and first page or slide of each PDF or PowerPoint file
-   in your source folder, then builds the list for you. It does not OCR scanned pages
-   in this step, so a scanned PDF may still need a typed list or your course structure.
-   Because it opens each file, it can take a little longer than the old name-only
-   check. Folders are named by code only (`EIE 326`), because the full course title is
-   not reliably in a file. If it finds no course codes, it says so instead of guessing;
-   type the list or import your course structure.
+   You can also press **Find my courses from the file names**. It reads the course
+   codes in the names of the files in your source folder and builds the list for you, so
+   you do not have to type anything. Folders are then named by code only (`EIE 326`),
+   because the full course title is not reliably in a file name. If your file names have
+   no course codes, it says so instead of guessing; type the list or import your course
+   structure. It does not read inside files, so a code that appears only on a page or
+   slide is not added automatically; the leftover list names that code so you can add it.
 
-   Spelling variants of the same number are merged. If the file names say `GEC 321`
-   and a slide says `CEG 321`, only `GEC 321` is offered; there is no `CEG` course.
    Personal/admin documents (SIWES, SWEP, internship, CV/resume, certificate, receipt,
    clearance, transcript, admission, invoice, payment, birth, origin, medical/fitness,
    testimonial, statement of purpose, logbook, defence) and level markers such as
@@ -377,11 +374,10 @@ every extracted code was usable by the matcher.
 - The rule is intentionally strict. A normal course handout that merely mentions
   another course code in its first five pages or slides will also stay put. That is
   the tradeoff for never filing a timetable or multi-course pack under one course.
-- **Find my courses from my files** reads names plus the metadata title, heading and
-  first page or slide, without OCR. A course whose code appears only on a scanned page
-  will not be in the automatic list; those files stay where they are unless you add
-  the course yourself or import your course structure. It can take longer than the
-  old name-only check.
+- **Find my courses from the file names** only reads file names. A course whose code
+  appears only inside a file, not in any file name, will not be in the automatic list;
+  the leftover list names that code so you can add it. This step does not open files
+  or OCR scans.
 - Word, text, Excel and image files are never read. If their names contain a course
   code, the app lists them after the scan and suggests saving them as PDF or
   PowerPoint.
