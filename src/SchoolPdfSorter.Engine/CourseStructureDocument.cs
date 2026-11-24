@@ -5,9 +5,8 @@ using NanoOcr.Pipeline;
 namespace SchoolPdfSorter.Engine;
 
 /// <summary>
-/// Reads a course-structure file the user pointed at: plain text and markdown are read as
-/// they are, a PDF goes through its text layer first and through the built-in OCR only when
-/// that layer is empty (a printed web page saved as pictures).
+/// Reads the course-structure table a student pastes or drops in. Plain text is read directly;
+/// a born-digital PDF uses its text layer; a scanned PDF uses the same offline OCR as the sorter.
 /// </summary>
 public static class CourseStructureDocument
 {
@@ -25,7 +24,8 @@ public static class CourseStructureDocument
         try
         {
             var extension = Path.GetExtension(path).ToLowerInvariant();
-            return (TextExtensions.Contains(extension) || PdfExtensions.Contains(extension)) && File.Exists(path);
+            return (TextExtensions.Contains(extension) || PdfExtensions.Contains(extension))
+                   && File.Exists(path);
         }
         catch
         {
@@ -33,11 +33,6 @@ public static class CourseStructureDocument
         }
     }
 
-    /// <summary>
-    /// The document's text, one cell per line or as OCR'd markdown tables. A structure is read
-    /// once and has small, tightly packed course codes, so it is rendered finer than the 200 DPI
-    /// used when sorting files.
-    /// </summary>
     public static string ReadText(string path, Action<string>? progress = null,
         CancellationToken ct = default, int dpi = 300)
     {
@@ -54,29 +49,34 @@ public static class CourseStructureDocument
         if (layered.TextChars >= Math.Max(120, layered.PageTexts.Count * 40))
             return layered.FullText;
 
-        // A scanned structure: read every page with the offline OCR. Its markdown keeps the
-        // table rows, which is what lets the parser tell a code from its department column.
+        // A scanned structure: read every page with the shared offline text reader. Pages run
+        // on a bounded worker pool over one model store, then join in ascending page index so
+        // CourseStructure.ParseDetailed sees the same table rows as the old sequential read.
         progress?.Invoke("Getting the text reader ready");
 
-        using var ocr = new NanoOCR(new NanoOcrOptions
-        {
-            Dpi = Math.Clamp(dpi, 150, 500),
-            Threads = Environment.ProcessorCount,
-            Mode = ConvertMode.Auto,
-        });
+        int budget = ResourceBudget.TotalBudget(0);
+        int workers = ResourceBudget.OcrWorkers(budget);
+        var ocr = OcrModelHost.Get(Math.Clamp(dpi, 150, 500), budget, ConvertMode.Auto, out _);
 
         var sb = new StringBuilder();
 
-        foreach (var page in ocr.Predict(path, maxPages: MaxPages))
+        foreach (var (_, pages, error) in ocr.PredictMany(
+                     new[] { path }, cores: workers, maxPages: MaxPages))
         {
-            ct.ThrowIfCancellationRequested();
+            if (error is not null)
+                throw error;
 
-            var text = page.Markdown;
-            if (string.IsNullOrWhiteSpace(text))
-                text = string.Join("\n", page.RecTexts);
+            foreach (var page in pages!.OrderBy(p => p.PageIndex))
+            {
+                ct.ThrowIfCancellationRequested();
 
-            sb.AppendLine(text);
-            progress?.Invoke($"Page {page.PageIndex + 1}");
+                var text = page.Markdown;
+                if (string.IsNullOrWhiteSpace(text))
+                    text = string.Join("\n", page.RecTexts);
+
+                sb.AppendLine(text);
+                progress?.Invoke($"Page {page.PageIndex + 1}");
+            }
         }
 
         return sb.ToString();

@@ -26,7 +26,8 @@ public static class PdfText
 
     public static PdfTextInfo Extract(string path, int maxPages = MaxPages)
     {
-        using var doc = PdfDocument.Open(File.ReadAllBytes(path));
+        using var stream = File.OpenRead(path);
+        using var doc = PdfDocument.Open(stream);
         int pageCount = doc.NumberOfPages;
         var pages = new List<string>();
         string biggest = "";

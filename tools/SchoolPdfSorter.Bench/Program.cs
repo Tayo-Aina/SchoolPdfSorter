@@ -55,21 +55,30 @@ if (Num("--threads") is { } t) opts.Threads = (int)t;
 if (Flag("--no-unlisted-stop")) opts.StopOnUnlistedCode = false;
 if (Flag("--no-suggest")) opts.SuggestNearMatches = false;
 
+// --workers pins the engine's OCR worker pool (0 leaves it to the resource budget).
+int? workers = Arg("--workers") is { } ws && int.TryParse(ws, out var w) ? w : null;
+if (workers is { } wc) opts.Workers = wc;
+var stress = Flag("--stress");
+
 var sorter = new Sorter(courses, opts);
 Console.WriteLine($"corpus: {files.Count} files, {courses.Count} courses");
 Console.WriteLine($"match: file name -> title -> text layer -> OCR (first {opts.MaxOcrPages} pages, {opts.Dpi:0} dpi)");
 Console.WriteLine($"stop on different course codes: {(opts.StopOnUnlistedCode ? "yes" : "no")}; suggestions: {(opts.SuggestNearMatches ? "yes" : "no")}");
+Console.WriteLine($"workers: {(workers?.ToString() ?? "auto")}");
 if (sorter.CoursesWithoutCode.Count > 0)
     Console.WriteLine($"courses with no code: {string.Join(" | ", sorter.CoursesWithoutCode)}");
 
 var verbose = Flag("--verbose");
+var paths = files.Select(f => f.Path).ToList();
+var allocBefore = GC.GetTotalAllocatedBytes(precise: false);
 var sw = Stopwatch.StartNew();
-var run = sorter.Run(files.Select(f => f.Path).ToList(), p =>
+var run = sorter.Run(paths, p =>
 {
     if (verbose && p.Phase == "ocr")
         Console.WriteLine($"    [ocr] {p.FileName} page {p.Page}/{p.Pages}");
 });
 sw.Stop();
+var allocAfter = GC.GetTotalAllocatedBytes(precise: false);
 
 var byPath = files.ToDictionary(f => f.Path);
 int moves = 0, wrongMoves = 0, ambiguousMoves = 0;
@@ -139,4 +148,21 @@ Console.WriteLine($"suggestions: {run.Dumps.Count(i => i.Suggestion is not null)
 Console.WriteLine($"tiers: {string.Join(", ", tiers)}");
 Console.WriteLine($"OCR: {run.Stats.OcrFiles} file(s), {run.Stats.OcrPages} page(s), {run.Stats.OcrSeconds:F1}s (model load {run.Stats.OcrInitSeconds:F1}s)");
 Console.WriteLine($"time total {run.Stats.TotalSeconds:F1}s (signals {run.Stats.SignalSeconds:F1}s, scan {run.Stats.ScanSeconds:F1}s)");
+Console.WriteLine($"peak working set: {Process.GetCurrentProcess().PeakWorkingSet64 / (1024.0 * 1024.0):F1} MiB");
+Console.WriteLine($"allocated during run: {(allocAfter - allocBefore) / (1024.0 * 1024.0):F1} MB");
+
+if (stress)
+{
+    Console.WriteLine();
+    Console.WriteLine("== stress (3 back-to-back passes) ==");
+    for (int pass = 1; pass <= 3; pass++)
+    {
+        var passSw = Stopwatch.StartNew();
+        sorter.Run(paths);
+        passSw.Stop();
+        var peak = Process.GetCurrentProcess().PeakWorkingSet64 / (1024.0 * 1024.0);
+        Console.WriteLine($"pass {pass}: wall {passSw.Elapsed.TotalSeconds:F1}s, peak working set {peak:F1} MiB");
+    }
+}
+
 return wrongMoves > 0 ? 2 : 0;

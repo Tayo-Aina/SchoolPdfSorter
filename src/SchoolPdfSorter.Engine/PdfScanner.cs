@@ -15,6 +15,25 @@ public sealed record PdfScanResult(
 }
 
 /// <summary>
+/// Everything a single directory walk can tell the app: the documents it should read, the
+/// legacy .ppt files and unreadable file types it should merely mention, and the folders it
+/// treated as already sorted.
+/// </summary>
+public sealed record PdfScanWorkspace(
+    IReadOnlyList<PdfScanEntry> Files,
+    IReadOnlyList<PdfScanEntry> LegacyPowerPoints,
+    IReadOnlyList<PdfScanEntry> UnsupportedFiles,
+    IReadOnlyList<string> SortedFolders,
+    int TemporaryFiles)
+{
+    /// <summary>File types the app cannot read, reported by name only after a scan.</summary>
+    public static readonly IReadOnlyList<string> UnsupportedExtensions = new[]
+    {
+        ".doc", ".docx", ".txt", ".md", ".csv", ".rtf", ".xls", ".xlsx", ".png", ".jpg", ".jpeg"
+    };
+}
+
+/// <summary>
 /// Finds documents under a source folder. Folders directly under the target that already name
 /// exactly one of the listed courses are treated as sorted and skipped, so a later run does
 /// not walk back through every file the app already filed. The target tree itself is skipped
@@ -24,6 +43,26 @@ public sealed record PdfScanResult(
 public static class PdfScanner
 {
     public static PdfScanResult Scan(
+        string sourceDir,
+        string targetDir,
+        bool includeSubfolders,
+        IEnumerable<string> courses,
+        IEnumerable<string>? extensions = null)
+    {
+        var workspace = ScanWorkspace(sourceDir, targetDir, includeSubfolders, courses, extensions);
+        return new PdfScanResult(workspace.Files, workspace.SortedFolders)
+        {
+            TemporaryFiles = workspace.TemporaryFiles
+        };
+    }
+
+    /// <summary>
+    /// One pass over the source tree that collects every bucket the conversation needs. The
+    /// selected extensions go to <see cref="PdfScanWorkspace.Files"/>; .ppt and the extensions
+    /// in <see cref="PdfScanWorkspace.UnsupportedExtensions"/> are returned only so the app can
+    /// warn about them. The helper checks are the same ones <see cref="Scan"/> has always used.
+    /// </summary>
+    public static PdfScanWorkspace ScanWorkspace(
         string sourceDir,
         string targetDir,
         bool includeSubfolders,
@@ -41,23 +80,36 @@ public static class PdfScanner
                             targetFull.StartsWith(sourceFull, StringComparison.OrdinalIgnoreCase);
 
         var types = NormalizeExtensions(extensions);
+        var legacyTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".ppt" };
+        var unsupportedTypes = new HashSet<string>(
+            PdfScanWorkspace.UnsupportedExtensions, StringComparer.OrdinalIgnoreCase);
+
         var sortedFolders = FindSortedFolders(targetRoot, courses);
         var option = includeSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
 
         var files = new List<PdfScanEntry>();
+        var legacy = new List<PdfScanEntry>();
+        var unsupported = new List<PdfScanEntry>();
         var skipped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var temporary = 0;
 
         foreach (var file in Directory.EnumerateFiles(sourceRoot, "*", option))
         {
-            if (!types.Contains(Path.GetExtension(file)))
+            var extension = Path.GetExtension(file);
+            var selected = types.Contains(extension);
+            var isLegacy = !selected && legacyTypes.Contains(extension);
+            var isUnsupported = !selected && !isLegacy && unsupportedTypes.Contains(extension);
+
+            if (!selected && !isLegacy && !isUnsupported)
                 continue;
 
             // Office owner/lock files are ~$name.pptx and can carry a course code in the
-            // name. They are junk, not presentations.
+            // name. They are junk, not presentations. Only chosen types are counted so the
+            // note about temporary files stays about files the app was going to read.
             if (Path.GetFileName(file).StartsWith("~$", StringComparison.Ordinal))
             {
-                temporary++;
+                if (selected)
+                    temporary++;
                 continue;
             }
 
@@ -67,7 +119,8 @@ public static class PdfScanner
             var sorted = sortedFolders.FirstOrDefault(folder => IsUnder(file, folder));
             if (sorted is not null)
             {
-                skipped.Add(sorted);
+                if (selected)
+                    skipped.Add(sorted);
                 continue;
             }
 
@@ -83,18 +136,29 @@ public static class PdfScanner
                 continue;
             }
 
-            files.Add(new PdfScanEntry(info.FullName, info.Length, info.LastWriteTimeUtc.Ticks));
+            var entry = new PdfScanEntry(info.FullName, info.Length, info.LastWriteTimeUtc.Ticks);
+            if (selected)
+                files.Add(entry);
+            else if (isLegacy)
+                legacy.Add(entry);
+            else
+                unsupported.Add(entry);
         }
 
-        files.Sort((a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
+        files.Sort(ByPath);
+        legacy.Sort(ByPath);
+        unsupported.Sort(ByPath);
 
-        return new PdfScanResult(
+        return new PdfScanWorkspace(
             files,
-            skipped.OrderBy(folder => folder, StringComparer.OrdinalIgnoreCase).ToList())
-        {
-            TemporaryFiles = temporary
-        };
+            legacy,
+            unsupported,
+            skipped.OrderBy(folder => folder, StringComparer.OrdinalIgnoreCase).ToList(),
+            temporary);
     }
+
+    private static int ByPath(PdfScanEntry a, PdfScanEntry b)
+        => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Direct children of the target that identify exactly one listed course. This catches

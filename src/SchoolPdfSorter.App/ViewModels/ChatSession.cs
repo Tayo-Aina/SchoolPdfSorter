@@ -226,20 +226,20 @@ public sealed class ChatSession
             $"Looking for {kind} files in:\n{sourceDir}\n" +
             (_vm.IncludeSubfolders ? "including subfolders" : "this folder only (subfolders are off)"));
 
-        var scan = PdfScanner.Scan(sourceDir, targetDir, _vm.IncludeSubfolders, _courses, extensions);
-        var files = scan.Files;
+        var workspace = PdfScanner.ScanWorkspace(sourceDir, targetDir, _vm.IncludeSubfolders, _courses, extensions);
+        var files = workspace.Files;
 
         if (wanted != "pdf")
-            WarnAboutLegacyPowerPoints(sourceDir, targetDir);
+            WarnAboutLegacyPowerPoints(workspace.LegacyPowerPoints);
 
-        ReportScanNotes(scan, sourceDir, targetDir);
+        ReportScanNotes(workspace);
 
         if (files.Count == 0)
         {
-            if (scan.SortedFolders.Count > 0)
+            if (workspace.SortedFolders.Count > 0)
                 _vm.Add(
                     $"No new {kind} files in {sourceDir}. " +
-                    $"{scan.SortedFolders.Count} course folders already have their files.",
+                    $"{workspace.SortedFolders.Count} course folders already have their files.",
                     ChatRole.System);
             else
                 _vm.Add($"No {kind} files found in {sourceDir}.", ChatRole.Warning);
@@ -297,26 +297,52 @@ public sealed class ChatSession
             "I find exactly one of your courses and no other course code. If I find none, or more " +
             "than one, it stays where it is.");
 
+        // Progress reports arrive on the UI thread through Progress<T>. Keep the bar monotonic
+        // and throttle updates so a burst of file reports does not repaint the window on every
+        // single file. Accumulated values are never dropped: a throttled report leaves the last
+        // shown value alone, so the next tick shows the newest (higher) one.
+        var lastPercent = -1.0;
+        var lastStatus = string.Empty;
+        var lastTick = Environment.TickCount64 - 100;
+
         IProgress<SorterProgress> progress = new Progress<SorterProgress>(p =>
         {
+            double candidate;
+            string status;
+
             switch (p.Phase)
             {
                 case "signals":
-                    _vm.SetProgress(p.Total == 0 ? 0 : p.Done * 25.0 / p.Total,
-                        $"Reading file {p.Done} of {p.Total}...");
+                    candidate = p.Total == 0 ? 0 : p.Done * 25.0 / p.Total;
+                    status = $"Reading file {p.Done} of {p.Total}...";
                     break;
                 case "ocr-load":
-                    _vm.SetProgress(25, $"Getting the text reader ready (first scan only)... {p.FileName}");
+                    candidate = 25;
+                    status = $"Getting the text reader ready (first scan only)... {p.FileName}";
                     break;
                 case "ocr":
-                    _vm.SetProgress(25 + p.Done * 75.0 / p.Total,
-                        $"Reading scanned pages: {p.Done + 1} of {p.Total}, page {p.Page} of {p.Pages}...");
+                    candidate = p.Total == 0 ? 25 : 25 + p.Done * 75.0 / p.Total;
+                    status = $"Reading scanned pages: {p.Done + 1} of {p.Total}, page {p.Page} of {p.Pages}...";
                     break;
                 case "scan":
-                    _vm.SetProgress(25 + p.Done * 75.0 / p.Total,
-                        $"Checked {p.Done} of {p.Total}...");
+                    candidate = p.Total == 0 ? 25 : 25 + p.Done * 75.0 / p.Total;
+                    status = $"Checked {p.Done} of {p.Total}...";
                     break;
+                default:
+                    return;
             }
+
+            var percent = Math.Clamp(Math.Max(lastPercent, candidate), 0, 100);
+            if (percent <= lastPercent && status == lastStatus)
+                return;
+
+            if (Environment.TickCount64 - lastTick < 100)
+                return;
+
+            _vm.SetProgress(percent, status);
+            lastPercent = percent;
+            lastStatus = status;
+            lastTick = Environment.TickCount64;
         });
 
         SorterRunResult freshResult;
@@ -340,7 +366,7 @@ public sealed class ChatSession
 
         // Save the left-alone decisions before the plan prompt. If the user cancels, the
         // next run still does not have to reopen and re-OCR every unchanged file.
-        var entries = scan.Files.ToDictionary(file => file.Path, StringComparer.OrdinalIgnoreCase);
+        var entries = workspace.Files.ToDictionary(file => file.Path, StringComparer.OrdinalIgnoreCase);
         cache.Remember(sourceDir, _courses,
             result.Dumps
                 .Where(dump => entries.ContainsKey(dump.File.Path))
@@ -868,15 +894,15 @@ public sealed class ChatSession
     /// Explains the things a run deliberately leaves alone: Office lock files, course-named
     /// folders and file types the app cannot read.
     /// </summary>
-    private void ReportScanNotes(PdfScanResult scan, string sourceDir, string targetDir)
+    private void ReportScanNotes(PdfScanWorkspace workspace)
     {
-        if (scan.TemporaryFiles > 0)
+        if (workspace.TemporaryFiles > 0)
         {
-            var temp = scan.TemporaryFiles == 1
+            var temp = workspace.TemporaryFiles == 1
                 ? "1 temporary Office file whose name starts with ~$"
-                : $"{scan.TemporaryFiles} temporary Office files whose names start with ~$";
+                : $"{workspace.TemporaryFiles} temporary Office files whose names start with ~$";
 
-            var explanation = scan.TemporaryFiles == 1
+            var explanation = workspace.TemporaryFiles == 1
                 ? "It is not the real document; the real file is the one without ~$."
                 : "They are not the real documents; the real files are the ones without ~$.";
 
@@ -886,23 +912,23 @@ public sealed class ChatSession
                 ChatRole.System);
         }
 
-        if (scan.SortedFolders.Count > 0)
+        if (workspace.SortedFolders.Count > 0)
         {
-            var names = scan.SortedFolders
+            var names = workspace.SortedFolders
                 .OrderByDescending(folder => Path.GetFileName(folder).Length)
                 .Select(Path.GetFileName)
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Take(6)
                 .ToList();
 
-            var folderWord = scan.SortedFolders.Count == 1 ? "folder" : "folders";
+            var folderWord = workspace.SortedFolders.Count == 1 ? "folder" : "folders";
 
-            var folders = $"I left {scan.SortedFolders.Count} {folderWord} alone because " +
-                          $"{(scan.SortedFolders.Count == 1 ? "its name already matches" : "their names already match")} " +
+            var folders = $"I left {workspace.SortedFolders.Count} {folderWord} alone because " +
+                          $"{(workspace.SortedFolders.Count == 1 ? "its name already matches" : "their names already match")} " +
                           $"a course: {string.Join(", ", names)}";
 
-            if (scan.SortedFolders.Count > names.Count)
-                folders += $", and {scan.SortedFolders.Count - names.Count} more";
+            if (workspace.SortedFolders.Count > names.Count)
+                folders += $", and {workspace.SortedFolders.Count - names.Count} more";
 
             _vm.Add(folders + ". I don't rename or move folders.", ChatRole.System);
         }
@@ -911,10 +937,7 @@ public sealed class ChatSession
 
         try
         {
-            var other = PdfScanner.Scan(sourceDir, targetDir, _vm.IncludeSubfolders, _courses,
-                new[] { ".doc", ".docx", ".txt", ".md", ".csv", ".rtf", ".xls", ".xlsx", ".png", ".jpg", ".jpeg" });
-
-            unsupported = other.Files
+            unsupported = workspace.UnsupportedFiles
                 .Select(file => file.Path)
                 .Where(path => CourseDiscovery.FromFileNames(new[] { path }).Count > 0)
                 .ToList();
@@ -941,16 +964,13 @@ public sealed class ChatSession
     /// Old binary .ppt files cannot be read. Names that carry a course code are listed so
     /// the user knows they were not silently ignored, and what to do with them.
     /// </summary>
-    private void WarnAboutLegacyPowerPoints(string sourceDir, string targetDir)
+    private void WarnAboutLegacyPowerPoints(IReadOnlyList<PdfScanEntry> legacyEntries)
     {
         List<string> legacy;
 
         try
         {
-            var scan = PdfScanner.Scan(sourceDir, targetDir, _vm.IncludeSubfolders, _courses,
-                new[] { ".ppt" });
-
-            legacy = scan.Files
+            legacy = legacyEntries
                 .Select(file => file.Path)
                 .Where(path => CourseDiscovery.FromFileNames(new[] { path }).Count > 0)
                 .ToList();

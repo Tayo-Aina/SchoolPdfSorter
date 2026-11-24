@@ -58,8 +58,14 @@ public sealed class StrictOptions
     /// <summary>Render resolution for OCR of scanned pages.</summary>
     public double Dpi { get; set; } = 200;
 
-    /// <summary>Kernel threads per OCR page; 0 uses every core.</summary>
+    /// <summary>Kernel threads per OCR page; 0 uses the resource budget's laptop default.</summary>
     public int Threads { get; set; }
+
+    /// <summary>
+    /// Maximum number of concurrent OCR workers. 0 derives it from physical cores and available
+    /// RAM via <see cref="ResourceBudget"/>. Never exceeds <see cref="Environment.ProcessorCount"/>.
+    /// </summary>
+    public int Workers { get; set; }
 
     /// <summary>
     /// Stop early when the file already points to another course: a different code in the
@@ -86,6 +92,12 @@ public sealed class StrictOptions
 /// A different course code in the file name (for example CSC 201 when only EIE 301 is listed)
 /// leaves the file alone without opening it. A sibling code in the cheap text (EIE 315 when
 /// only EIE 301 is listed) also leaves it alone and skips OCR. No embeddings, no guesses.
+///
+/// Execution uses one shared OCR engine and bounded in-process agents: a triage pass settles
+/// files by name, a small signal pool reads cheap text, and NanoOCR's PredictMany pool runs
+/// page jobs on at most W workers (each single-threaded) over the same model store. Page text is
+/// committed in ascending page index, so every reason, tier and cached payload is identical to
+/// the old sequential loop.
 /// </summary>
 public sealed class Sorter
 {
@@ -116,6 +128,15 @@ public sealed class Sorter
 
     public IReadOnlyList<CourseCode> Codes => _codes;
 
+    /// <summary>A file whose cheap evidence could not settle it, handed to the OCR pool.</summary>
+    private sealed record OcrJob(
+        int Index,
+        int Total,
+        FileSignals File,
+        Evidence Evidence,
+        CourseSuggestion? Suggestion,
+        int ScanPages);
+
     public SorterRunResult Run(
         IReadOnlyList<string> paths,
         Action<SorterProgress>? progress = null,
@@ -124,7 +145,7 @@ public sealed class Sorter
         var totalSw = Stopwatch.StartNew();
         int total = paths.Count;
 
-        // ---- pass 0: file/folder names first; open only the files still in play ----
+        // ---- triage agent: file/folder names first; open only the files still in play ----
         var signals = new FileSignals[total];
         var open = new bool[total];
         int toOpen = 0;
@@ -179,12 +200,14 @@ public sealed class Sorter
             }
         }
 
+        // ---- signal agents: bounded cheap extraction (streamed PdfPig / Open XML) ----
         int extracted = 0;
         var extractSw = Stopwatch.StartNew();
-        var extractParallelism = Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
+        int budget = ResourceBudget.TotalBudget(_opt.Threads);
+        int signalWorkers = ResourceBudget.SignalWorkers(budget);
 
         Parallel.For(0, total,
-            new ParallelOptions { MaxDegreeOfParallelism = extractParallelism, CancellationToken = ct },
+            new ParallelOptions { MaxDegreeOfParallelism = signalWorkers, CancellationToken = ct },
             i =>
             {
                 if (!open[i])
@@ -197,59 +220,115 @@ public sealed class Sorter
 
         extractSw.Stop();
 
-        // ---- pass 1: strict code hunt, OCR only when the cheap passes find nothing ----
-        var items = new List<SorterFileResult>(total);
-        int moved = 0, dumped = 0, ocrFiles = 0, ocrPagesTotal = 0;
-        double ocrSeconds = 0, ocrInitSeconds = 0;
-        NanoOCR? ocr = null;
+        // ---- cheap decisions: lots of files settle without ever touching file bytes ----
+        var results = new SorterFileResult[total];
+        var ocrJobs = new List<OcrJob>();
         var scanSw = Stopwatch.StartNew();
 
-        try
+        for (int i = 0; i < total; i++)
         {
-            for (int i = 0; i < total; i++)
+            ct.ThrowIfCancellationRequested();
+
+            var job = PrepareOcr(signals[i], i, total, out var settled);
+            if (job is null)
             {
-                ct.ThrowIfCancellationRequested();
-
-                var result = Decide(signals[i], i, total, progress, ct, ref ocr, ref ocrInitSeconds);
-                items.Add(result);
-
-                if (result.IsMove) moved++;
-                else dumped++;
-
-                if (result.OcrPages > 0)
-                {
-                    ocrFiles++;
-                    ocrPagesTotal += result.OcrPages;
-                    ocrSeconds += result.OcrSeconds;
-                }
-
+                results[i] = settled!;
                 progress?.Invoke(new SorterProgress(i + 1, total, "scan", signals[i].FileName,
-                    result.OcrPages, _opt.MaxOcrPages, result.Course));
+                    settled!.OcrPages, _opt.MaxOcrPages, settled.Course));
+            }
+            else
+            {
+                ocrJobs.Add(job);
             }
         }
-        finally
+
+        // ---- OCR agents: one shared engine, W bounded page workers, ascending-page commit ----
+        double ocrInitSeconds = 0;
+        var ocrPhaseSw = Stopwatch.StartNew();
+
+        if (ocrJobs.Count > 0)
         {
-            ocr?.Dispose();
+            ct.ThrowIfCancellationRequested();
+
+            int workers = ResourceBudget.OcrWorkers(budget, _opt.Workers);
+            int threadsPerPage = ResourceBudget.ThreadsPerPage(budget, workers, 1);
+
+            var first = ocrJobs[0];
+            progress?.Invoke(new SorterProgress(first.Index, total, "ocr-load", first.File.FileName,
+                0, first.ScanPages));
+
+            var ocr = OcrModelHost.Get(
+                _opt.Dpi > 0 ? _opt.Dpi : 200,
+                budget,
+                ConvertMode.Auto,
+                out ocrInitSeconds);
+
+            using (NanoOcr.Core.Parallelism.Use(threadsPerPage))
+            {
+                bool duplicatePaths = ocrJobs.Select(j => j.File.Path)
+                    .Distinct(StringComparer.Ordinal).Count() != ocrJobs.Count;
+
+                if (duplicatePaths)
+                {
+                    // PredictMany groups by path; keep the old per-file semantics if the caller
+                    // passed the same path twice.
+                    foreach (var job in ocrJobs)
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        var (pages, error) = PredictOne(ocr, job);
+                        Commit(job, pages, error, progress, ct, results);
+                    }
+                }
+                else
+                {
+                    // Every page of every input is a task on 'workers' single-threaded kernel
+                    // workers. Results come back in input order, so the arbiter below sees each
+                    // file's pages in strict ascending order.
+                    int next = 0;
+                    foreach (var (_, pages, error) in ocr.PredictMany(
+                                 ocrJobs.Select(j => j.File.Path),
+                                 cores: workers,
+                                 maxPages: _opt.MaxOcrPages))
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        if (next >= ocrJobs.Count)
+                            break;
+                        Commit(ocrJobs[next++], pages, error, progress, ct, results);
+                    }
+
+                    // Any input PredictMany refused to yield becomes an ordinary OCR failure.
+                    while (next < ocrJobs.Count)
+                        Commit(ocrJobs[next++], null, new IOException("no OCR result"), progress, ct, results);
+                }
+            }
         }
 
+        ocrPhaseSw.Stop();
         scanSw.Stop();
+
+        int moved = results.Count(r => r.IsMove);
+        int dumped = total - moved;
+        int ocrFiles = results.Count(r => r.OcrPages > 0);
+        int ocrPagesTotal = results.Sum(r => r.OcrPages);
+
+        // PredictMany finishes a file's pages before yielding them, so a per-file timer would
+        // measure only evidence commit. Report the whole bounded OCR stage instead.
+        double ocrSeconds = ocrJobs.Count > 0 ? ocrPhaseSw.Elapsed.TotalSeconds : 0;
 
         var stats = new SorterStats(total, moved, dumped, ocrFiles, ocrPagesTotal,
             extractSw.Elapsed.TotalSeconds, scanSw.Elapsed.TotalSeconds, ocrSeconds, ocrInitSeconds,
             totalSw.Elapsed.TotalSeconds, toOpen);
 
-        return new SorterRunResult(items, stats);
+        return new SorterRunResult(results, stats);
     }
 
-    private SorterFileResult Decide(
-        FileSignals file,
-        int filesDone,
-        int total,
-        Action<SorterProgress>? progress,
-        CancellationToken ct,
-        ref NanoOCR? ocr,
-        ref double ocrInitSeconds)
+    /// <summary>
+    /// Runs the cheap part of the decision. Returns null when OCR is needed, otherwise the final
+    /// result. The evidence object is carried forward so OCR commits into the same instance.
+    /// </summary>
+    private OcrJob? PrepareOcr(FileSignals file, int index, int total, out SorterFileResult? settled)
     {
+        settled = null;
         var evidence = new Evidence();
 
         AddEvidence(evidence, file.FileName, "the file name", "filename", prose: false);
@@ -260,19 +339,28 @@ public sealed class Sorter
         // A timetable is multi-course by nature. Catching it here also catches the case
         // where its file name was decorated with one course code.
         if (evidence.HasTimetable)
-            return Dump(file, TimetableReason(evidence), "timetable");
+        {
+            settled = Dump(file, TimetableReason(evidence), "timetable");
+            return null;
+        }
 
         if (!opened)
         {
             if (evidence.HasMultiMarker)
-                return Dump(file,
+            {
+                settled = Dump(file,
                     "looks like a timetable, past questions or a combined pack, " +
                     "and the file could not be opened. Left alone.",
                     "multi");
+                return null;
+            }
 
             var unopenedConflict = Conflict(file, evidence, 0, 0);
             if (unopenedConflict is not null)
-                return unopenedConflict;
+            {
+                settled = unopenedConflict;
+                return null;
+            }
 
             if (evidence.Listed.Count == 1)
             {
@@ -282,14 +370,19 @@ public sealed class Sorter
                 // name is not: this could be a timetable or another course's paper sitting
                 // inside that folder, so never move an unreadable file on the folder alone.
                 if (evidence.ListedTier[only.Code] == "folder")
-                    return Dump(file,
+                {
+                    settled = Dump(file,
                         $"the folder name has a course code, but the file could not be read to verify it. " +
                         "Left alone.", "none");
+                    return null;
+                }
 
-                return MoveFromEvidence(file, evidence, 0, 0);
+                settled = MoveFromEvidence(file, evidence, 0, 0);
+                return null;
             }
 
-            return Dump(file, "the file could not be opened", "none");
+            settled = Dump(file, "the file could not be opened", "none");
+            return null;
         }
 
         AddEvidence(evidence, file.MetadataTitle, "the title", "title");
@@ -311,11 +404,17 @@ public sealed class Sorter
         }
 
         if (evidence.HasTimetable)
-            return Dump(file, TimetableReason(evidence), "timetable");
+        {
+            settled = Dump(file, TimetableReason(evidence), "timetable");
+            return null;
+        }
 
         var cheapConflict = Conflict(file, evidence, 0, 0);
         if (cheapConflict is not null)
-            return cheapConflict;
+        {
+            settled = cheapConflict;
+            return null;
+        }
 
         // A PowerPoint file with no slide text cannot be verified. If its only code is
         // the folder name, or its name says it may cover several courses, leave it alone;
@@ -325,14 +424,20 @@ public sealed class Sorter
             var only = evidence.Listed.Values.First();
 
             if (evidence.ListedTier[only.Code] == "folder")
-                return Dump(file,
+            {
+                settled = Dump(file,
                     "the folder name has a course code, but the PowerPoint file has no text to " +
                     "verify it. Left alone.", "slides");
+                return null;
+            }
 
             if (evidence.HasMultiMarker)
-                return Dump(file,
+            {
+                settled = Dump(file,
                     "the name says it may cover more than one course, and the PowerPoint file has " +
                     "no text to check. Left alone.", "multi");
+                return null;
+            }
         }
 
         // A multi-course-looking file with one code and no text layer (or with blank
@@ -341,88 +446,133 @@ public sealed class Sorter
         bool mustCheckScans = evidence.Listed.Count == 1 && evidence.HasMultiMarker
             && !file.IsPresentation && NeedsOcr(file);
         if (evidence.Listed.Count == 1 && !mustCheckScans)
-            return MoveFromEvidence(file, evidence, 0, 0);
+        {
+            settled = MoveFromEvidence(file, evidence, 0, 0);
+            return null;
+        }
 
         // A suggestion is only ever shown beside an untouched file; it never moves or renames.
-        CourseSuggestion? suggestion = null;
-        CourseSuggestion? GetSuggestion()
-            => _opt.SuggestNearMatches ? suggestion ??= CourseSuggester.Suggest(file, _codes) : null;
+        CourseSuggestion? suggestion = _opt.SuggestNearMatches
+            ? CourseSuggester.Suggest(file, _codes)
+            : null;
 
         if (file.PageCount <= 0)
-            return Dump(file, "the file could not be opened", "none", suggestion: GetSuggestion());
+        {
+            settled = Dump(file, "the file could not be opened", "none", suggestion: suggestion);
+            return null;
+        }
 
         if (_codes.Count == 0)
-            return Dump(file, "your course list has no course codes", "none");
+        {
+            settled = Dump(file, "your course list has no course codes", "none");
+            return null;
+        }
 
         if (file.IsPresentation)
         {
             var slides = Math.Min(Math.Max(1, file.PageCount), PptxText.MaxSlides);
 
-            return Dump(file,
+            settled = Dump(file,
                 file.HasAnyText
                     ? $"no course code in the file name, the title or the first {slides} slides"
                     : "the slides are pictures with no text I can read",
-                "slides", 0, 0, GetSuggestion());
+                "slides", 0, 0, suggestion);
+            return null;
         }
 
         int scanPages = Math.Min(Math.Max(1, _opt.MaxOcrPages), file.PageCount);
+        return new OcrJob(index, total, file, evidence, suggestion, scanPages);
+    }
 
-        if (ocr is null)
+    private static (IReadOnlyList<OcrResult>? Pages, Exception? Error) PredictOne(NanoOCR ocr, OcrJob job)
+    {
+        try
         {
-            progress?.Invoke(new SorterProgress(filesDone, total, "ocr-load", file.FileName, 0, scanPages));
-
-            var initStart = Stopwatch.GetTimestamp();
-            ocr = new NanoOCR(new NanoOcrOptions
-            {
-                Dpi = _opt.Dpi,
-                Threads = _opt.Threads > 0 ? _opt.Threads : Environment.ProcessorCount,
-                Mode = ConvertMode.Auto,
-            });
-            ocrInitSeconds += Stopwatch.GetElapsedTime(initStart).TotalSeconds;
+            return (ocr.Predict(job.File.Path, maxPages: job.ScanPages).ToList(), null);
         }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return (null, ex);
+        }
+    }
 
+    /// <summary>
+    /// Decision arbiter: commits page text strictly in ascending page index, using the very same
+    /// AddEvidence / Conflict path as the old sequential loop. An early timetable or conflict
+    /// stops the file without looking at later pages.
+    /// </summary>
+    private void Commit(
+        OcrJob job,
+        IReadOnlyList<OcrResult>? pages,
+        Exception? error,
+        Action<SorterProgress>? progress,
+        CancellationToken ct,
+        SorterFileResult[] results)
+    {
+        var evidence = job.Evidence;
         int pagesRead = 0;
         var ocrStart = Stopwatch.GetTimestamp();
 
+        if (error is not null || pages is null)
+        {
+            results[job.Index] = Dump(job.File, "the scanned pages could not be read",
+                "ocr", 0, 0, job.Suggestion);
+            return;
+        }
+
         try
         {
-            foreach (var page in ocr.Predict(file.Path, maxPages: scanPages))
+            foreach (var page in pages)
             {
                 ct.ThrowIfCancellationRequested();
 
                 pagesRead = page.PageIndex + 1;
-                progress?.Invoke(new SorterProgress(filesDone, total, "ocr", file.FileName, pagesRead, scanPages));
+                progress?.Invoke(new SorterProgress(job.Index + 1, job.Total, "ocr",
+                    job.File.FileName, pagesRead, job.ScanPages));
 
                 AddEvidence(evidence, page.Text, $"scanned page {pagesRead}", "ocr");
 
                 if (evidence.HasTimetable)
-                    return Dump(file, TimetableReason(evidence), "timetable",
+                {
+                    results[job.Index] = Dump(job.File, TimetableReason(evidence), "timetable",
                         pagesRead, Stopwatch.GetElapsedTime(ocrStart).TotalSeconds);
+                    return;
+                }
 
-                var ocrConflict = Conflict(file, evidence,
-                    pagesRead, Stopwatch.GetElapsedTime(ocrStart).TotalSeconds);
+                var ocrConflict = Conflict(job.File, evidence, pagesRead,
+                    Stopwatch.GetElapsedTime(ocrStart).TotalSeconds);
                 if (ocrConflict is not null)
-                    return ocrConflict;
+                {
+                    results[job.Index] = ocrConflict;
+                    return;
+                }
 
                 // Exactly one listed code so far: keep reading. A second code on a later
                 // page is exactly the multi-course / timetable case this check exists for.
             }
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (OperationCanceledException)
         {
-            return Dump(file, $"the scanned pages could not be read",
-                "ocr", pagesRead, Stopwatch.GetElapsedTime(ocrStart).TotalSeconds,
-                GetSuggestion());
+            throw;
+        }
+        catch (Exception)
+        {
+            results[job.Index] = Dump(job.File, "the scanned pages could not be read",
+                "ocr", pagesRead, Stopwatch.GetElapsedTime(ocrStart).TotalSeconds, job.Suggestion);
+            return;
         }
 
-        if (evidence.Listed.Count == 1)
-            return MoveFromEvidence(file, evidence, pagesRead,
-                Stopwatch.GetElapsedTime(ocrStart).TotalSeconds);
+        double seconds = Stopwatch.GetElapsedTime(ocrStart).TotalSeconds;
 
-        return Dump(file,
-            $"no course code in the file name, the title or the first {scanPages} pages",
-            "ocr", pagesRead, Stopwatch.GetElapsedTime(ocrStart).TotalSeconds,
-            GetSuggestion());
+        if (evidence.Listed.Count == 1)
+        {
+            results[job.Index] = MoveFromEvidence(job.File, evidence, pagesRead, seconds);
+            return;
+        }
+
+        results[job.Index] = Dump(job.File,
+            $"no course code in the file name, the title or the first {job.ScanPages} pages",
+            "ocr", pagesRead, seconds, job.Suggestion);
     }
 
     private void AddEvidence(Evidence evidence, string? text, string where, string tier,
